@@ -1,0 +1,6 @@
+{
+  "name": "Xaaji Salaad School",
+  "description": "School Management Portal for Xaaji Salaad School with Dashboard, Student and Teacher registries, Attendance tracking, Treasury & Fee management, Exams, High-Level Chat & Messaging, and Parent Portal.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

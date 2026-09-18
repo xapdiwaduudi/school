@@ -1,0 +1,24 @@
+{
+  "entities": {
+    "SchoolData": {
+      "collection": "school_data",
+      "fields": {
+        "students": { "type": "array" },
+        "teachers": { "type": "array" },
+        "attendance": { "type": "array" },
+        "exams": { "type": "array" },
+        "schedules": { "type": "array" },
+        "expenses": { "type": "array" },
+        "transactions": { "type": "array" },
+        "accounts": { "type": "array" },
+        "paymentSubmissions": { "type": "array" },
+        "messages": { "type": "array" },
+        "subjects": { "type": "array" },
+        "threshold": { "type": "number" },
+        "schoolName": { "type": "string" },
+        "users": { "type": "array" },
+        "updatedAt": { "type": "string" }
+      }
+    }
+  }
+}
