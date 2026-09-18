@@ -628,7 +628,7 @@ export default function App() {
         />
       );
     }
-    if (currentUser.role === 'teacher' && !['exam-input', 'chat', 'ranking', 'ai-assistant'].includes(activeTab)) {
+    if (currentUser.role === 'teacher' && !['exam-input', 'chat', 'ai-assistant'].includes(activeTab)) {
       return (
         <ExamEntryPage 
           students={students} 
@@ -656,7 +656,7 @@ export default function App() {
         />
       );
     }
-    if (currentUser.role === 'student' && !['exam-portal', 'chat', 'ranking', 'ai-assistant'].includes(activeTab)) {
+    if (currentUser.role === 'student' && !['exam-portal', 'chat', 'ai-assistant'].includes(activeTab)) {
       return <ExamResultPage students={students} exams={exams} />;
     }
 
@@ -931,6 +931,20 @@ export default function App() {
               {getRoleBadgeUI(currentUser.role)}
             </div>
 
+            {/* Live Chat Help Button in Header */}
+            <button
+              onClick={() => setActiveTab('chat')}
+              className="px-2.5 sm:px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer min-h-[38px]"
+              title="Live Chat Help - Toos ula hadal Maamulka"
+            >
+              <MessageCircle className="w-3.5 h-3.5 text-white" />
+              <span className="hidden sm:inline">Live Chat Help</span>
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-200 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-300"></span>
+              </span>
+            </button>
+
             {currentUser.role === 'admin' && (
               <button
                 onClick={() => setShowSwitchModal(true)}
@@ -1057,6 +1071,31 @@ export default function App() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Floating Live Chat Help Button (Visible when not in Chat tab) */}
+      {activeTab !== 'chat' && (
+        <div className="fixed bottom-5 right-5 z-40 no-print">
+          <button
+            onClick={() => setActiveTab('chat')}
+            className="group flex items-center gap-2.5 bg-[#042954] hover:bg-[#031d3d] text-white px-4 py-3 rounded-full shadow-2xl border-2 border-[#ffae01] transition-all hover:scale-105 cursor-pointer"
+            title="Live Chat Help - Toos ula hadal Maamulka"
+          >
+            <div className="relative">
+              <MessageCircle className="w-5 h-5 text-[#ffae01]" />
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#042954] animate-ping" />
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#042954]" />
+            </div>
+            <div className="flex flex-col text-left">
+              <span className="text-xs font-bold font-display leading-tight flex items-center gap-1 text-white">
+                Live Chat Help
+              </span>
+              <span className="text-[10px] text-[#ffae01] font-semibold leading-tight">
+                {currentUser.role === 'admin' ? 'Messenger' : 'La Hadal Maamulka'}
+              </span>
+            </div>
+          </button>
         </div>
       )}
     </div>

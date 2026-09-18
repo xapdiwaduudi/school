@@ -25,6 +25,7 @@ import {
   MessageCircle,
   Sparkles,
   DollarSign,
+  Headphones,
   X
 } from 'lucide-react';
 import { AppUser } from '../types';
@@ -58,11 +59,12 @@ export default function Sidebar({
 }: SidebarProps) {
   
   // All possible menu items with role matrix
+  // Student iyo Teacher waa laga saaray Class Ranking (Maamulka kaliya)
   const allMenuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin'] },
-    { id: 'ranking', label: 'Class Ranking', icon: Trophy, roles: ['admin', 'vice_principal_1', 'vice_principal_2', 'teacher', 'student', 'parent'] },
+    { id: 'ranking', label: 'Class Ranking', icon: Trophy, roles: ['admin', 'vice_principal_1', 'vice_principal_2'] },
     { id: 'ai-assistant', label: 'School AI Assistant', icon: Sparkles, roles: ['admin', 'vice_principal_1', 'vice_principal_2', 'teacher', 'student', 'parent'] },
-    { id: 'chat', label: 'Wada-xiriirka (Chat)', icon: MessageCircle, roles: ['admin', 'vice_principal_1', 'vice_principal_2', 'teacher', 'student', 'parent'] },
+    { id: 'chat', label: 'Wada-xiriirka (Live Chat)', icon: MessageCircle, roles: ['admin', 'vice_principal_1', 'vice_principal_2', 'teacher', 'student', 'parent'] },
     { id: 'student', label: 'Students', icon: GraduationCap, roles: ['admin'] },
     { id: 'teacher', label: 'Teachers', icon: Users, roles: ['admin'] },
     { id: 'attendance', label: 'Attendance', icon: CalendarCheck, roles: ['admin', 'vice_principal_1'] },
@@ -255,6 +257,30 @@ export default function Sidebar({
             );
           })}
         </nav>
+
+        {/* Live Chat Help Card in Sidebar */}
+        <div className="mx-3 my-2 p-2.5 bg-gradient-to-br from-[#063870] to-[#042954] rounded-xl border border-blue-400/20 shadow-md flex flex-col gap-1.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-white">
+              <Headphones className="w-3.5 h-3.5 text-[#ffae01]" />
+              <span>Live Chat Help</span>
+            </div>
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          </div>
+          <p className="text-[10px] text-slate-300 leading-tight">
+            {userRole === 'admin' ? 'Xarunta Wada-xiriirka Tooska ah' : 'Toos ula hadal Maamulka Iskuulka'}
+          </p>
+          <button
+            onClick={() => {
+              handleTabClick('chat');
+              if (setIsMobileOpen) setIsMobileOpen(false);
+            }}
+            className="w-full py-1.5 px-2 bg-[#ffae01] hover:bg-[#e09b00] text-slate-950 text-[11px] font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs"
+          >
+            <MessageCircle className="w-3.5 h-3.5" />
+            <span>Fur Live Chat</span>
+          </button>
+        </div>
 
         {/* Footer */}
         <div className="p-3 border-t border-[#031a36] text-[11px] text-slate-400 text-center flex flex-col gap-1">

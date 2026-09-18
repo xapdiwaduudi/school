@@ -129,8 +129,8 @@ export default function ParentTeacherChat({
     return currentUser?.username || 'Maamulka Iskuulka';
   }, [currentUser, isTeacher, linkedTeacher, isStudent, linkedStudent, isParent]);
 
-  // Active channel/conversation ID
-  const [activeChatId, setActiveChatId] = useState<string>('channel_general');
+  // Active channel/conversation ID - Non-admin defaults to Maamulaha Sare (Live Chat)
+  const [activeChatId, setActiveChatId] = useState<string>(() => isAnyAdmin ? 'channel_general' : 'admin');
   // Left sidebar filter tab: 'all' | 'channels' | 'teachers' | 'students' | 'parents' | 'admin'
   const [chatCategoryFilter, setChatCategoryFilter] = useState<'all' | 'channels' | 'teachers' | 'students' | 'parents' | 'admin'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -176,21 +176,23 @@ export default function ParentTeacherChat({
   }, [students]);
 
   // All predefined school channels
+  // Sida uu dalbaday macmiilku: Ardayda, macallimiinta iyo waalidiintu waxay arkaan kaliya Ogeysiisyada Guud ee Maamulka.
+  // Maamulka kaliya ayaa heli kara kooxaha kale.
   const channelsList: ChatTarget[] = useMemo(() => {
     const list: ChatTarget[] = [
       {
         id: 'channel_general',
         type: 'channel',
-        name: '📢 Ogeysiisyada Guud (All School)',
+        name: '📢 Ogeysiisyada Guud (School Announcements)',
         roleLabel: 'Guud / Dhammaan',
         roleBadge: 'channel',
-        subtext: 'Iskoolka oo dhan: Maamulka, Macallimiinta, Ardayda & Waalidiinta',
+        subtext: 'Ogeysiisyada rasmiga ah ee Maamulka Iskuulka Xaaji Salaad',
         isOfficialChannel: true
       }
     ];
 
-    // Staff channel only visible to admin, vice principals, and teachers
-    if (isAnyAdmin || isTeacher) {
+    // Staff and Class channels are ONLY for Admin
+    if (isAnyAdmin) {
       list.push({
         id: 'channel_staff',
         type: 'channel',
@@ -200,45 +202,43 @@ export default function ParentTeacherChat({
         subtext: 'Wadahadalka gaarka ah ee macallimiinta iyo maamulka',
         isOfficialChannel: true
       });
+
+      distinctClasses.forEach(cls => {
+        list.push({
+          id: `class_${cls}`,
+          type: 'channel',
+          name: `🏫 Fasalka ${cls}`,
+          roleLabel: `Group ${cls}`,
+          roleBadge: 'channel',
+          subtext: `Kooxda fasalka ${cls} ee ardayda, macallimiinta iyo maamulka`,
+          classGroup: cls
+        });
+      });
     }
 
-    // Class groups
-    distinctClasses.forEach(cls => {
-      // If student or parent, only show their own class unless admin/teacher
-      if (isStudent && linkedStudent && linkedStudent.form !== cls) return;
-      if (isParent && linkedStudent && linkedStudent.form !== cls) return;
-
-      list.push({
-        id: `class_${cls}`,
-        type: 'channel',
-        name: `🏫 Fasalka ${cls}`,
-        roleLabel: `Group ${cls}`,
-        roleBadge: 'channel',
-        subtext: `Kooxda fasalka ${cls} ee ardayda, macallimiinta iyo maamulka`,
-        classGroup: cls
-      });
-    });
-
     return list;
-  }, [distinctClasses, isAnyAdmin, isTeacher, isStudent, isParent, linkedStudent]);
+  }, [distinctClasses, isAnyAdmin]);
 
   // Build directory of all possible DM targets across school
+  // Xeerka Wada-xiriirka:
+  // Maamulaha KALIYA ayaa la hadli kara ardayda, macalimiinta ama waalidiinta.
+  // Ardayda, macalimiinta iyo waalidka KALIYA maamulaha (Admin & VPs) ayey la hadli karaan si toos ah (Live Chat Help).
   const allDirectTargets: ChatTarget[] = useMemo(() => {
     const list: ChatTarget[] = [];
 
-    // 1. Administrators
+    // 1. Administrators (Always included, the single contact point for students, teachers, and parents)
     // Main Admin
     list.push({
       id: 'admin',
       type: 'direct',
-      name: 'Maamulaha Sare (Head Office)',
+      name: 'Maamulaha Sare (Head Office & Live Help)',
       roleLabel: 'Maamule Sare',
       roleBadge: 'admin',
-      subtext: 'Maamulka guud ee Iskuulka Xaaji Salaad',
+      subtext: 'Xafiiska Maamulka Guud & Live Support',
       phone: '+252906305090'
     });
 
-    // Ku-xigeenka 1aad (VP Attendance)
+    // Ku-xigeenka 1aad (VP Attendance & Routine)
     list.push({
       id: 'vice_principal_1',
       type: 'direct',
@@ -260,53 +260,56 @@ export default function ParentTeacherChat({
       phone: '+252906305090'
     });
 
-    // 2. Teachers
-    teachers.forEach(t => {
-      list.push({
-        id: t.id,
-        type: 'direct',
-        name: `Macallin ${t.name}`,
-        roleLabel: `Macallin (${t.subject})`,
-        roleBadge: 'teacher',
-        subtext: `Maaddada: ${t.subject}`,
-        phone: t.phone,
-        photo: t.img,
-        subject: t.subject
+    // 2. Teachers, Students, and Parents are ONLY accessible by Maamulka (Admin & Vice Principals)
+    if (isAnyAdmin) {
+      // Teachers
+      teachers.forEach(t => {
+        list.push({
+          id: t.id,
+          type: 'direct',
+          name: `Macallin ${t.name}`,
+          roleLabel: `Macallin (${t.subject})`,
+          roleBadge: 'teacher',
+          subtext: `Maaddada: ${t.subject}`,
+          phone: t.phone,
+          photo: t.img,
+          subject: t.subject
+        });
       });
-    });
 
-    // 3. Students
-    students.forEach(s => {
-      list.push({
-        id: s.id,
-        type: 'direct',
-        name: `Arday ${s.name}`,
-        roleLabel: `Arday (${s.form})`,
-        roleBadge: 'student',
-        subtext: `Fasalka: ${s.form} &bull; ID: ${s.id}`,
-        phone: s.parentPhone,
-        photo: s.img,
-        classGroup: s.form
+      // Students
+      students.forEach(s => {
+        list.push({
+          id: s.id,
+          type: 'direct',
+          name: `Arday ${s.name}`,
+          roleLabel: `Arday (${s.form})`,
+          roleBadge: 'student',
+          subtext: `Fasalka: ${s.form} &bull; ID: ${s.id}`,
+          phone: s.parentPhone,
+          photo: s.img,
+          classGroup: s.form
+        });
       });
-    });
 
-    // 4. Parents (linked by student guardian)
-    students.filter(s => s.guardian || s.parentPhone).forEach(s => {
-      list.push({
-        id: `parent_${s.id}`,
-        type: 'direct',
-        name: s.guardian ? `Waalidka ${s.guardian}` : `Waalidka ${s.name}`,
-        roleLabel: `Waalid (${s.form})`,
-        roleBadge: 'parent',
-        subtext: `Ardayga: ${s.name} (${s.form})`,
-        phone: s.parentPhone,
-        photo: s.img,
-        classGroup: s.form
+      // Parents (linked by student guardian)
+      students.filter(s => s.guardian || s.parentPhone).forEach(s => {
+        list.push({
+          id: `parent_${s.id}`,
+          type: 'direct',
+          name: s.guardian ? `Waalidka ${s.guardian}` : `Waalidka ${s.name}`,
+          roleLabel: `Waalid (${s.form})`,
+          roleBadge: 'parent',
+          subtext: `Ardayga: ${s.name} (${s.form})`,
+          phone: s.parentPhone,
+          photo: s.img,
+          classGroup: s.form
+        });
       });
-    });
+    }
 
     return list;
-  }, [teachers, students]);
+  }, [teachers, students, isAnyAdmin]);
 
   // Combine Channels & Direct Targets into quick map
   const allTargetsMap = useMemo(() => {
@@ -376,22 +379,46 @@ export default function ParentTeacherChat({
       return messages.filter(m => m.channelId === activeChatId || m.recipientId === activeChatId);
     }
 
-    // Direct 1-on-1: messages between me and activeChatId
-    const otherId = activeChatId;
-    return messages.filter(m => {
-      // Must not be a channel message
-      if (m.channelId || m.recipientRole === 'channel') return false;
+    if (!isAnyAdmin) {
+      // User is Student, Teacher, or Parent.
+      // They can ONLY communicate with Maamulka (admin, vice_principal_1, vice_principal_2).
+      const adminTargetIds = ['admin', 'vice_principal_1', 'vice_principal_2'];
+      const targetAdminId = adminTargetIds.includes(activeChatId) ? activeChatId : 'admin';
 
-      // 1-on-1 match
-      const fromMeToThem = (m.senderId === myChatId || (isAnyAdmin && m.senderRole === 'admin')) && 
-                           (m.recipientId === otherId || (otherId === 'admin' && m.recipientRole === 'admin'));
+      return messages.filter(m => {
+        if (m.channelId || m.recipientRole === 'channel') return false;
 
-      const fromThemToMe = (m.senderId === otherId || (otherId === 'admin' && m.senderRole === 'admin')) && 
-                           (m.recipientId === myChatId || (isAnyAdmin && m.recipientId === 'admin'));
+        // Sent by me to Maamulka
+        const sentByMeToAdmin = 
+          (m.senderId === myChatId) && 
+          (m.recipientId === targetAdminId || adminTargetIds.includes(m.recipientId) || m.recipientRole === 'admin');
 
-      return fromMeToThem || fromThemToMe;
-    });
-  }, [messages, activeChatId, myChatId, isAnyAdmin]);
+        // Sent by Maamulka to me
+        const sentByAdminToMe = 
+          (m.senderId === targetAdminId || adminTargetIds.includes(m.senderId) || m.senderRole === 'admin' || m.senderRole === 'vice_principal_1' || m.senderRole === 'vice_principal_2') && 
+          (m.recipientId === myChatId || (linkedStudent && m.recipientId === linkedStudent.id));
+
+        return sentByMeToAdmin || sentByAdminToMe;
+      });
+    } else {
+      // Current user is an Administrator / Vice Principal
+      // Viewing a conversation with another user (student, teacher, parent, or VP)
+      const otherId = activeChatId;
+      return messages.filter(m => {
+        if (m.channelId || m.recipientRole === 'channel') return false;
+
+        const fromAdminToUser = 
+          (m.senderId === myChatId || m.senderId === 'admin' || m.senderRole === 'admin' || m.senderRole === 'vice_principal_1' || m.senderRole === 'vice_principal_2') &&
+          (m.recipientId === otherId);
+
+        const fromUserToAdmin = 
+          (m.senderId === otherId) &&
+          (m.recipientId === myChatId || m.recipientId === 'admin' || m.recipientRole === 'admin' || m.recipientRole === 'vice_principal_1' || m.recipientRole === 'vice_principal_2');
+
+        return fromAdminToUser || fromUserToAdmin;
+      });
+    }
+  }, [messages, activeChatId, myChatId, isAnyAdmin, linkedStudent]);
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -400,13 +427,58 @@ export default function ParentTeacherChat({
 
   // List of active conversations to show in the left list
   const conversationListItems = useMemo(() => {
-    // 1. All channels
     const items: Array<{
       target: ChatTarget;
       lastMessage?: ParentMessage;
       unreadCount: number;
     }> = [];
 
+    // If not admin: ONLY show Ogeysiisyada Guud & Maamulka Offices
+    if (!isAnyAdmin) {
+      // 1. Ogeysiisyada Guud
+      const generalChan = channelsList.find(c => c.id === 'channel_general');
+      if (generalChan) {
+        const chanMsgs = messages.filter(m => m.channelId === generalChan.id || m.recipientId === generalChan.id);
+        items.push({
+          target: generalChan,
+          lastMessage: chanMsgs[chanMsgs.length - 1],
+          unreadCount: 0
+        });
+      }
+
+      // 2. ONLY Maamulka Contacts
+      ['admin', 'vice_principal_1', 'vice_principal_2'].forEach(id => {
+        const target = allTargetsMap.get(id);
+        if (!target) return;
+
+        const dmMessages = messages.filter(m => {
+          if (m.channelId || m.recipientRole === 'channel') return false;
+          return (m.senderId === myChatId && (m.recipientId === id || (id === 'admin' && m.recipientRole === 'admin'))) ||
+                 ((m.senderId === id || (id === 'admin' && m.senderRole === 'admin')) && (m.recipientId === myChatId || (linkedStudent && m.recipientId === linkedStudent.id)));
+        });
+
+        items.push({
+          target,
+          lastMessage: dmMessages[dmMessages.length - 1],
+          unreadCount: 0
+        });
+      });
+
+      // Filter by search query if any
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        return items.filter(item => 
+          item.target.name.toLowerCase().includes(q) ||
+          item.target.subtext.toLowerCase().includes(q) ||
+          (item.lastMessage?.message && item.lastMessage.message.toLowerCase().includes(q))
+        );
+      }
+
+      return items;
+    }
+
+    // Admin view: shows all channels and all active/contacted users
+    // 1. All channels
     channelsList.forEach(chan => {
       const chanMsgs = messages.filter(m => m.channelId === chan.id || m.recipientId === chan.id);
       const lastMsg = chanMsgs[chanMsgs.length - 1];
@@ -417,43 +489,27 @@ export default function ParentTeacherChat({
       });
     });
 
-    // 2. Direct conversations where there's already message history or important contacts
+    // 2. Direct conversations where there's already message history or key directory contacts
     const contactedIds = new Set<string>();
     messages.forEach(m => {
       if (m.channelId || m.recipientRole === 'channel') return;
-
-      if (m.senderId === myChatId) {
-        contactedIds.add(m.recipientId);
-      } else if (m.recipientId === myChatId) {
-        contactedIds.add(m.senderId);
-      } else if (isAnyAdmin) {
-        // Admins can see all threads in their directory
-        contactedIds.add(m.senderId);
-        contactedIds.add(m.recipientId);
-      }
+      contactedIds.add(m.senderId);
+      contactedIds.add(m.recipientId);
     });
 
-    // Always include key staff in DM list for easy reach
-    if (!isAnyAdmin) {
-      contactedIds.add('admin');
-      contactedIds.add('vice_principal_1');
-      contactedIds.add('vice_principal_2');
-    }
-
-    // Add teachers if student or parent
-    if (isStudent || isParent) {
-      teachers.slice(0, 3).forEach(t => contactedIds.add(t.id));
-    }
+    // Also include key teachers and students for fast access
+    teachers.forEach(t => contactedIds.add(t.id));
+    students.slice(0, 15).forEach(s => contactedIds.add(s.id));
 
     contactedIds.forEach(id => {
-      if (id === myChatId) return;
+      if (id === myChatId || id === 'admin') return;
       const target = allTargetsMap.get(id);
       if (!target) return;
 
       const dmMessages = messages.filter(m => {
         if (m.channelId) return false;
-        return (m.senderId === id && (m.recipientId === myChatId || (isAnyAdmin && m.recipientId === 'admin'))) ||
-               (m.senderId === myChatId && (m.recipientId === id || (id === 'admin' && m.recipientRole === 'admin')));
+        return (m.senderId === id && (m.recipientId === myChatId || m.recipientId === 'admin')) ||
+               ((m.senderId === myChatId || m.senderId === 'admin') && m.recipientId === id);
       });
 
       const lastMsg = dmMessages[dmMessages.length - 1];
@@ -464,7 +520,7 @@ export default function ParentTeacherChat({
       });
     });
 
-    // Filter by Category
+    // Filter by Category for admin
     let filtered = items;
     if (chatCategoryFilter === 'channels') {
       filtered = filtered.filter(item => item.target.type === 'channel');
@@ -496,7 +552,7 @@ export default function ParentTeacherChat({
       const timeB = b.lastMessage ? new Date(b.lastMessage.createdAt).getTime() : 0;
       return timeB - timeA;
     });
-  }, [channelsList, messages, myChatId, isAnyAdmin, isStudent, isParent, teachers, allTargetsMap, chatCategoryFilter, searchQuery]);
+  }, [channelsList, messages, myChatId, isAnyAdmin, teachers, students, linkedStudent, allTargetsMap, chatCategoryFilter, searchQuery]);
 
   // Current active target
   const activeTarget = useMemo(() => {
@@ -524,16 +580,38 @@ export default function ParentTeacherChat({
       currentUser?.role === 'teacher' ? 'teacher' :
       currentUser?.role === 'student' ? 'student' : 'parent';
 
+    let targetId = activeTarget.id;
+    let targetName = activeTarget.name;
+    let targetRole: any = isChannel ? 'channel' : activeTarget.roleBadge;
+    let chId = isChannel ? activeTarget.id : undefined;
+
+    // Role Enforcement:
+    // Students, teachers, and parents can ONLY send messages to Maamulka (Live Chat).
+    if (!isAnyAdmin) {
+      const allowedAdminIds = ['admin', 'vice_principal_1', 'vice_principal_2'];
+      if (isChannel) {
+        // Automatically route to Maamulaha Sare as live inquiry
+        targetId = 'admin';
+        targetName = 'Maamulaha Sare (Head Office & Live Help)';
+        targetRole = 'admin';
+        chId = undefined;
+        setActiveChatId('admin');
+      } else if (!allowedAdminIds.includes(activeTarget.id)) {
+        alert("Wada-xiriirka waxaa loo oggol yahay kaliya inaad la hadasho Maamulka Iskuulka (Live Chat).");
+        return;
+      }
+    }
+
     const newMsg: ParentMessage = {
       id: `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       senderId: myChatId,
       senderName: myChatName,
       senderRole: senderRoleBadge,
       senderAvatar: currentUser?.role === 'teacher' ? linkedTeacher?.img : linkedStudent?.img,
-      recipientId: activeTarget.id,
-      recipientName: activeTarget.name,
-      recipientRole: isChannel ? 'channel' : activeTarget.roleBadge as any,
-      channelId: isChannel ? activeTarget.id : undefined,
+      recipientId: targetId,
+      recipientName: targetName,
+      recipientRole: targetRole,
+      channelId: chId,
       studentId: linkedStudent?.id,
       studentName: linkedStudent?.name,
       studentClass: linkedStudent?.form || activeTarget.classGroup,
@@ -767,45 +845,49 @@ export default function ParentTeacherChat({
                 Dhammaan
               </button>
               <button
-                onClick={() => setChatCategoryFilter('channels')}
-                className={`px-2.5 py-1 rounded-lg shrink-0 transition-colors cursor-pointer ${
-                  chatCategoryFilter === 'channels' ? 'bg-[#042954] text-white' : 'text-slate-600 hover:bg-slate-200/60'
-                }`}
-              >
-                📢 Kooxaha
-              </button>
-              <button
                 onClick={() => setChatCategoryFilter('admin')}
                 className={`px-2.5 py-1 rounded-lg shrink-0 transition-colors cursor-pointer ${
                   chatCategoryFilter === 'admin' ? 'bg-[#042954] text-white' : 'text-slate-600 hover:bg-slate-200/60'
                 }`}
               >
-                🛡️ Maamulka
+                🛡️ Maamulka (Live Help)
               </button>
               <button
-                onClick={() => setChatCategoryFilter('teachers')}
+                onClick={() => setChatCategoryFilter('channels')}
                 className={`px-2.5 py-1 rounded-lg shrink-0 transition-colors cursor-pointer ${
-                  chatCategoryFilter === 'teachers' ? 'bg-[#042954] text-white' : 'text-slate-600 hover:bg-slate-200/60'
+                  chatCategoryFilter === 'channels' ? 'bg-[#042954] text-white' : 'text-slate-600 hover:bg-slate-200/60'
                 }`}
               >
-                👨‍🏫 Macallimiinta
+                📢 Ogeysiisyada
               </button>
-              <button
-                onClick={() => setChatCategoryFilter('students')}
-                className={`px-2.5 py-1 rounded-lg shrink-0 transition-colors cursor-pointer ${
-                  chatCategoryFilter === 'students' ? 'bg-[#042954] text-white' : 'text-slate-600 hover:bg-slate-200/60'
-                }`}
-              >
-                🎓 Ardayda
-              </button>
-              <button
-                onClick={() => setChatCategoryFilter('parents')}
-                className={`px-2.5 py-1 rounded-lg shrink-0 transition-colors cursor-pointer ${
-                  chatCategoryFilter === 'parents' ? 'bg-[#042954] text-white' : 'text-slate-600 hover:bg-slate-200/60'
-                }`}
-              >
-                👨‍👩‍👧 Waalidiinta
-              </button>
+              {isAnyAdmin && (
+                <>
+                  <button
+                    onClick={() => setChatCategoryFilter('teachers')}
+                    className={`px-2.5 py-1 rounded-lg shrink-0 transition-colors cursor-pointer ${
+                      chatCategoryFilter === 'teachers' ? 'bg-[#042954] text-white' : 'text-slate-600 hover:bg-slate-200/60'
+                    }`}
+                  >
+                    👨‍🏫 Macallimiinta
+                  </button>
+                  <button
+                    onClick={() => setChatCategoryFilter('students')}
+                    className={`px-2.5 py-1 rounded-lg shrink-0 transition-colors cursor-pointer ${
+                      chatCategoryFilter === 'students' ? 'bg-[#042954] text-white' : 'text-slate-600 hover:bg-slate-200/60'
+                    }`}
+                  >
+                    🎓 Ardayda
+                  </button>
+                  <button
+                    onClick={() => setChatCategoryFilter('parents')}
+                    className={`px-2.5 py-1 rounded-lg shrink-0 transition-colors cursor-pointer ${
+                      chatCategoryFilter === 'parents' ? 'bg-[#042954] text-white' : 'text-slate-600 hover:bg-slate-200/60'
+                    }`}
+                  >
+                    👨‍👩‍👧 Waalidiinta
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
@@ -1308,48 +1390,55 @@ export default function ParentTeacherChat({
                 />
               </div>
 
-              <div className="flex items-center gap-1 overflow-x-auto text-[11px] font-bold">
-                <button
-                  onClick={() => setNewChatCategory('all')}
-                  className={`px-2.5 py-1 rounded-lg cursor-pointer ${
-                    newChatCategory === 'all' ? 'bg-[#042954] text-white' : 'bg-slate-200/70 text-slate-700'
-                  }`}
-                >
-                  Dhammaan
-                </button>
-                <button
-                  onClick={() => setNewChatCategory('admin')}
-                  className={`px-2.5 py-1 rounded-lg cursor-pointer ${
-                    newChatCategory === 'admin' ? 'bg-[#042954] text-white' : 'bg-slate-200/70 text-slate-700'
-                  }`}
-                >
-                  Maamulka
-                </button>
-                <button
-                  onClick={() => setNewChatCategory('teacher')}
-                  className={`px-2.5 py-1 rounded-lg cursor-pointer ${
-                    newChatCategory === 'teacher' ? 'bg-[#042954] text-white' : 'bg-slate-200/70 text-slate-700'
-                  }`}
-                >
-                  Macallimiinta
-                </button>
-                <button
-                  onClick={() => setNewChatCategory('student')}
-                  className={`px-2.5 py-1 rounded-lg cursor-pointer ${
-                    newChatCategory === 'student' ? 'bg-[#042954] text-white' : 'bg-slate-200/70 text-slate-700'
-                  }`}
-                >
-                  Ardayda
-                </button>
-                <button
-                  onClick={() => setNewChatCategory('parent')}
-                  className={`px-2.5 py-1 rounded-lg cursor-pointer ${
-                    newChatCategory === 'parent' ? 'bg-[#042954] text-white' : 'bg-slate-200/70 text-slate-700'
-                  }`}
-                >
-                  Waalidiinta
-                </button>
-              </div>
+              {!isAnyAdmin ? (
+                <div className="p-2.5 bg-blue-50 rounded-xl border border-blue-200 text-xs text-blue-900 font-medium flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-blue-700 shrink-0" />
+                  <span>Xafiiska Maamulka kaliya ayaa lagala hadli karaa halkan (Live Chat Help Desk).</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1 overflow-x-auto text-[11px] font-bold">
+                  <button
+                    onClick={() => setNewChatCategory('all')}
+                    className={`px-2.5 py-1 rounded-lg cursor-pointer ${
+                      newChatCategory === 'all' ? 'bg-[#042954] text-white' : 'bg-slate-200/70 text-slate-700'
+                    }`}
+                  >
+                    Dhammaan
+                  </button>
+                  <button
+                    onClick={() => setNewChatCategory('admin')}
+                    className={`px-2.5 py-1 rounded-lg cursor-pointer ${
+                      newChatCategory === 'admin' ? 'bg-[#042954] text-white' : 'bg-slate-200/70 text-slate-700'
+                    }`}
+                  >
+                    Maamulka
+                  </button>
+                  <button
+                    onClick={() => setNewChatCategory('teacher')}
+                    className={`px-2.5 py-1 rounded-lg cursor-pointer ${
+                      newChatCategory === 'teacher' ? 'bg-[#042954] text-white' : 'bg-slate-200/70 text-slate-700'
+                    }`}
+                  >
+                    Macallimiinta
+                  </button>
+                  <button
+                    onClick={() => setNewChatCategory('student')}
+                    className={`px-2.5 py-1 rounded-lg cursor-pointer ${
+                      newChatCategory === 'student' ? 'bg-[#042954] text-white' : 'bg-slate-200/70 text-slate-700'
+                    }`}
+                  >
+                    Ardayda
+                  </button>
+                  <button
+                    onClick={() => setNewChatCategory('parent')}
+                    className={`px-2.5 py-1 rounded-lg cursor-pointer ${
+                      newChatCategory === 'parent' ? 'bg-[#042954] text-white' : 'bg-slate-200/70 text-slate-700'
+                    }`}
+                  >
+                    Waalidiinta
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* List of Contacts */}

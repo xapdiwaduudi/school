@@ -90,6 +90,11 @@ export default function FeesPage({
     e.preventDefault();
     if (!payingStudent) return;
 
+    // Xaqiiji lacag bixinta: Ma hubtaa in qofku uu lacagta bixiyay?
+    if (!window.confirm("Ma hubtaa in qofku uu lacagta bixiyay?")) {
+      return;
+    }
+
     const chosenAccount = accounts.find(a => a.id === payAccountId) || accounts[0];
     const accountLabel = chosenAccount ? `${chosenAccount.name} (Acc: ${chosenAccount.accountNumber})` : 'Qasnadda Guud';
 
@@ -129,6 +134,11 @@ export default function FeesPage({
 
   // Toggle quick status
   const handleStatusChange = (studentId: string, isPaid: boolean) => {
+    if (isPaid) {
+      if (!window.confirm("Ma hubtaa in qofku uu lacagta bixiyay?")) {
+        return;
+      }
+    }
     const updated = students.map(s => {
       if (s.id === studentId) {
         return { ...s, feePaid: isPaid };
@@ -148,6 +158,12 @@ export default function FeesPage({
   const handleSaveEdit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingStudent) return;
+
+    if (editFeePaid && !editingStudent.feePaid) {
+      if (!window.confirm("Ma hubtaa in qofku uu lacagta bixiyay?")) {
+        return;
+      }
+    }
 
     const updated = students.map(s => {
       if (s.id === editingStudent.id) {
@@ -180,6 +196,10 @@ export default function FeesPage({
 
   // --- APPROVAL WORKFLOW ---
   const handleApproveSubmission = (sub: PaymentSubmission) => {
+    if (!window.confirm(`Ma hubtaa in qofku uu lacagta bixiyay? ($${sub.amount} - ${sub.studentName})`)) {
+      return;
+    }
+
     const targetAccount = accounts.find(a => a.id === sub.accountId) || accounts[0];
     const accLabel = targetAccount ? `${targetAccount.name} (${targetAccount.accountNumber})` : sub.accountName;
 
@@ -714,6 +734,17 @@ export default function FeesPage({
             </div>
 
             <form onSubmit={handleConfirmDirectPayment} className="space-y-4">
+              {/* Su'aasha Xaqiijinta */}
+              <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 flex items-center gap-2.5">
+                <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
+                <div>
+                  <div className="text-xs font-bold text-amber-900">Ma hubtaa in qofku uu lacagta bixiyay?</div>
+                  <p className="text-[11px] text-amber-800 mt-0.5">
+                    Fadlan hubi xisaabta ka hor inta aadan lacagta xareynin.
+                  </p>
+                </div>
+              </div>
+
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
                 <div className="text-xs text-slate-500 font-bold uppercase tracking-wider">Ardayga:</div>
                 <div className="text-sm font-bold text-slate-900 mt-0.5">{payingStudent.name}</div>
