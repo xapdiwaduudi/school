@@ -60,8 +60,8 @@ export default function Sidebar({
   // All possible menu items with role matrix
   const allMenuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin'] },
-    { id: 'ranking', label: 'Class Ranking', icon: Trophy, roles: ['admin', 'teacher', 'student', 'parent'] },
-    { id: 'ai-assistant', label: 'School AI Assistant', icon: Sparkles, roles: ['admin', 'teacher', 'student', 'parent'] },
+    { id: 'ranking', label: 'Class Ranking', icon: Trophy, roles: ['admin', 'vice_principal_1', 'vice_principal_2', 'teacher', 'student', 'parent'] },
+    { id: 'ai-assistant', label: 'School AI Assistant', icon: Sparkles, roles: ['admin', 'vice_principal_1', 'vice_principal_2', 'teacher', 'student', 'parent'] },
     { id: 'chat', label: 'Wada-xiriirka (Chat)', icon: MessageCircle, roles: ['admin', 'vice_principal_1', 'vice_principal_2', 'teacher', 'student', 'parent'] },
     { id: 'student', label: 'Students', icon: GraduationCap, roles: ['admin'] },
     { id: 'teacher', label: 'Teachers', icon: Users, roles: ['admin'] },

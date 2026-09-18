@@ -86,7 +86,7 @@ CRITICAL BEHAVIORAL DIRECTIVES:
       });
 
       const response = await client.models.generateContent({
-        model: 'gemini-3.7-flash',
+        model: 'gemini-3.8-flash',
         contents: contents,
         config: {
           systemInstruction: {

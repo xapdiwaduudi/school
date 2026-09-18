@@ -438,10 +438,18 @@ export default function App() {
     updatedMessages?: ParentMessage[],
     updatedTransactions?: FinancialTransaction[],
     updatedAccounts?: SchoolAccount[],
-    updatedPaymentSubmissions?: PaymentSubmission[]
+    updatedPaymentSubmissions?: PaymentSubmission[],
+    updatedTeachers?: Teacher[],
+    updatedAttendance?: AttendanceRecord[],
+    updatedSchedules?: Schedule[],
+    updatedExpenses?: Expense[]
   ) => {
     const freshStudents = updatedStudents !== undefined ? updatedStudents : students;
+    const freshTeachers = updatedTeachers !== undefined ? updatedTeachers : teachers;
+    const freshAttendance = updatedAttendance !== undefined ? updatedAttendance : attendance;
     const freshExams = updatedExams !== undefined ? updatedExams : exams;
+    const freshSchedules = updatedSchedules !== undefined ? updatedSchedules : schedules;
+    const freshExpenses = updatedExpenses !== undefined ? updatedExpenses : expenses;
     const freshSubjects = updatedSubjects !== undefined ? updatedSubjects : subjects;
     const freshThreshold = updatedThreshold !== undefined ? updatedThreshold : passThreshold;
     const freshSchoolName = updatedSchoolName !== undefined ? updatedSchoolName : schoolName;
@@ -453,12 +461,12 @@ export default function App() {
 
     const exportObject: SchoolData = {
       students: freshStudents,
-      attendance,
+      attendance: freshAttendance,
       exams: freshExams,
-      schedules,
-      expenses,
+      schedules: freshSchedules,
+      expenses: freshExpenses,
       transactions: freshTransactions,
-      teachers,
+      teachers: freshTeachers,
       subjects: freshSubjects,
       threshold: freshThreshold,
       schoolName: freshSchoolName,
@@ -509,64 +517,15 @@ export default function App() {
     setTeachers(updatedTeachers);
     if (updatedUsers) {
       setUsers(updatedUsers);
-      const exportObj: SchoolData = {
-        students,
-        attendance,
-        exams,
-        schedules,
-        expenses,
-        teachers: updatedTeachers,
-        subjects,
-        threshold: passThreshold,
-        schoolName,
-        users: updatedUsers,
-        messages
-      };
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(exportObj));
-      await saveSchoolDataToCloud(exportObj);
+      saveAllData(undefined, undefined, undefined, undefined, undefined, updatedUsers, undefined, undefined, undefined, undefined, updatedTeachers);
     } else {
-      const exportObj: SchoolData = {
-        students,
-        attendance,
-        exams,
-        schedules,
-        expenses,
-        teachers: updatedTeachers,
-        subjects,
-        threshold: passThreshold,
-        schoolName,
-        users,
-        messages
-      };
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(exportObj));
-      await saveSchoolDataToCloud(exportObj);
+      saveAllData(undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, updatedTeachers);
     }
   };
 
   const handleAttendanceSave = async (updatedAttendance: AttendanceRecord[]) => {
     setAttendance(updatedAttendance);
-    const exportObject: SchoolData = {
-      students,
-      attendance: updatedAttendance,
-      exams,
-      schedules,
-      expenses,
-      teachers,
-      subjects,
-      threshold: passThreshold,
-      schoolName,
-      users,
-      messages
-    };
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(exportObject));
-    try {
-      setIsSyncing(true);
-      await saveSchoolDataToCloud(exportObject);
-      setIsSyncing(false);
-    } catch (err) {
-      console.warn("Could not push attendance to cloud:", err);
-      setIsSyncing(false);
-    }
+    saveAllData(undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, updatedAttendance);
   };
 
   const handleExamsSave = (updatedExams: ExamResult[]) => {
@@ -576,54 +535,12 @@ export default function App() {
 
   const handleSchedulesSave = async (updatedSchedules: Schedule[]) => {
     setSchedules(updatedSchedules);
-    const exportObject: SchoolData = {
-      students,
-      attendance,
-      exams,
-      schedules: updatedSchedules,
-      expenses,
-      teachers,
-      subjects,
-      threshold: passThreshold,
-      schoolName,
-      users,
-      messages
-    };
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(exportObject));
-    try {
-      setIsSyncing(true);
-      await saveSchoolDataToCloud(exportObject);
-      setIsSyncing(false);
-    } catch (err) {
-      console.warn("Could not push schedules to cloud:", err);
-      setIsSyncing(false);
-    }
+    saveAllData(undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, updatedSchedules);
   };
 
   const handleExpensesSave = async (updatedExpenses: Expense[]) => {
     setExpenses(updatedExpenses);
-    const exportObject: SchoolData = {
-      students,
-      attendance,
-      exams,
-      schedules,
-      expenses: updatedExpenses,
-      teachers,
-      subjects,
-      threshold: passThreshold,
-      schoolName,
-      users,
-      messages
-    };
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(exportObject));
-    try {
-      setIsSyncing(true);
-      await saveSchoolDataToCloud(exportObject);
-      setIsSyncing(false);
-    } catch (err) {
-      console.warn("Could not push expenses to cloud:", err);
-      setIsSyncing(false);
-    }
+    saveAllData(undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, updatedExpenses);
   };
 
   const handleUsersSave = (updatedUsers: AppUser[]) => {
