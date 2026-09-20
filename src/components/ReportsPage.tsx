@@ -1,174 +1,326 @@
-import React, { useState } from 'react';
-import { AttendanceRecord } from '../types';
-import { FileSpreadsheet, Printer, ArrowUpDown } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { SaleTransaction, Product, Expense, Customer } from '../types';
+import { 
+  FileSpreadsheet, 
+  Printer, 
+  TrendingUp, 
+  TrendingDown, 
+  DollarSign, 
+  Package, 
+  Calendar, 
+  ShoppingBag, 
+  Award, 
+  Download, 
+  CheckCircle2 
+} from 'lucide-react';
 
 interface ReportsPageProps {
-  attendance: AttendanceRecord[];
+  sales: SaleTransaction[];
+  products: Product[];
+  expenses: Expense[];
+  customers: Customer[];
+  supermarketName?: string;
 }
 
-export default function ReportsPage({ attendance }: ReportsPageProps) {
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
-  const [selectedClass, setSelectedClass] = useState('All');
-  const [selectedStatus, setSelectedStatus] = useState('All');
+export default function ReportsPage({
+  sales,
+  products,
+  expenses,
+  customers,
+  supermarketName = 'Xaaji Salaad Supermarket'
+}: ReportsPageProps) {
+  const [dateRange, setDateRange] = useState<'all' | 'today' | 'week' | 'month'>('all');
 
-  // Dynamic filter logic
-  const filteredRecords = attendance.filter(rec => {
-    const fromMatch = !dateFrom || rec.date >= dateFrom;
-    const toMatch = !dateTo || rec.date <= dateTo;
-    const classMatch = selectedClass === 'All' || rec.form === selectedClass;
-    const statusMatch = selectedStatus === 'All' || rec.status === selectedStatus;
-    return fromMatch && toMatch && classMatch && statusMatch;
-  });
-
-  // Calculate top stats
-  let topPresentStudent = 'N/A';
-  let topAbsentStudent = 'N/A';
-
-  if (attendance.length > 0) {
-    const counts = attendance.reduce((acc: { [name: string]: number }, curr) => {
-      acc[curr.name] = (acc[curr.name] || 0) + (curr.status === 'present' ? 1 : -1);
-      return acc;
-    }, {});
-
-    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-    if (sorted.length > 0) {
-      topPresentStudent = sorted[0][0];
-      topAbsentStudent = sorted[sorted.length - 1][0];
+  // Filter sales based on dateRange
+  const filteredSales = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    if (dateRange === 'today') {
+      return sales.filter(s => s.date === today);
     }
-  }
+    if (dateRange === 'week') {
+      const oneWeekAgo = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString().split('T')[0];
+      return sales.filter(s => s.date >= oneWeekAgo);
+    }
+    if (dateRange === 'month') {
+      const oneMonthAgo = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString().split('T')[0];
+      return sales.filter(s => s.date >= oneMonthAgo);
+    }
+    return sales;
+  }, [sales, dateRange]);
 
-  const handlePrint = () => {
-    window.print();
-  };
+  // Financial Metrics
+  const grossSalesRevenue = useMemo(() => {
+    return filteredSales.reduce((sum, s) => sum + s.total, 0);
+  }, [filteredSales]);
+
+  // Cost of Goods Sold (COGS)
+  const costOfGoodsSold = useMemo(() => {
+    return filteredSales.reduce((sum, s) => {
+      return sum + s.items.reduce((itemSum, item) => itemSum + (item.buyPrice * item.qty), 0);
+    }, 0);
+  }, [filteredSales]);
+
+  const grossProfit = grossSalesRevenue - costOfGoodsSold;
+  const totalOperatingExpenses = expenses.reduce((sum, e) => sum + e.amt, 0);
+  const netProfit = grossProfit - totalOperatingExpenses;
+
+  // Inventory value
+  const totalStockValue = products.reduce((sum, p) => sum + (p.buyPrice * p.stockQty), 0);
+  const totalRetailValue = products.reduce((sum, p) => sum + (p.sellPrice * p.stockQty), 0);
+  const totalCustomerReceivables = customers.reduce((sum, c) => sum + c.totalDebt, 0);
+
+  // Top Selling Products
+  const topProducts = useMemo(() => {
+    const productSalesMap: Record<string, { name: string; qty: number; revenue: number }> = {};
+
+    sales.forEach(sale => {
+      sale.items.forEach(item => {
+        if (!productSalesMap[item.productId]) {
+          productSalesMap[item.productId] = { name: item.name, qty: 0, revenue: 0 };
+        }
+        productSalesMap[item.productId].qty += item.qty;
+        productSalesMap[item.productId].revenue += item.totalPrice;
+      });
+    });
+
+    return Object.values(productSalesMap)
+      .sort((a, b) => b.qty - a.qty)
+      .slice(0, 5);
+  }, [sales]);
+
+  // Payment method breakdown
+  const paymentBreakdown = useMemo(() => {
+    const map: Record<string, number> = {};
+    filteredSales.forEach(s => {
+      map[s.paymentMethod] = (map[s.paymentMethod] || 0) + s.total;
+    });
+    return map;
+  }, [filteredSales]);
 
   return (
-    <div className="space-y-6">
-      {/* Filters Card */}
-      <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-xs no-print">
-        <div className="flex items-center gap-2 border-b border-slate-100 pb-4 mb-6">
-          <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+    <div className="space-y-4">
+      {/* Top Banner */}
+      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 no-print">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 bg-[#042954] text-[#ffae01] rounded-xl shadow-xs">
             <FileSpreadsheet className="w-5 h-5" />
           </div>
-          <h2 className="text-lg font-bold font-display text-slate-900">Warbixinta Xaadirinta (Reports)</h2>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Laga Bilaabo (From)</label>
-            <input 
-              type="date" 
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-              className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:bg-white focus:border-blue-500 transition-colors"
-            />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Ilaa (To)</label>
-            <input 
-              type="date" 
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-              className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:bg-white focus:border-blue-500 transition-colors"
-            />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Dooro Class</label>
-            <select 
-              value={selectedClass}
-              onChange={(e) => setSelectedClass(e.target.value)}
-              className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:bg-white focus:border-blue-500 transition-colors"
-            >
-              <option value="All">Dhammaan Class-yada</option>
-              {Array.from({ length: 12 }, (_, i) => `Class ${i + 1}`).map(cls => (
-                <option key={cls} value={cls}>{cls}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Status</label>
-            <select 
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:bg-white focus:border-blue-500 transition-colors"
-            >
-              <option value="All">Dhammaan (All)</option>
-              <option value="present">Jooga (Present)</option>
-              <option value="absent">Maqan (Absent)</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* Top statistics overview */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="bg-gradient-to-br from-red-400 to-red-600 text-white p-5 rounded-xl shadow-xs flex flex-col justify-between">
-          <span className="text-xs font-bold uppercase tracking-wider opacity-90">Ardayga Maqnaanshaha Badan</span>
-          <span className="text-2xl font-black block mt-2 font-display">{topAbsentStudent}</span>
-        </div>
-
-        <div className="bg-gradient-to-br from-emerald-400 to-emerald-600 text-white p-5 rounded-xl shadow-xs flex flex-col justify-between">
-          <span className="text-xs font-bold uppercase tracking-wider opacity-90">Ardayga Joogista Badan</span>
-          <span className="text-2xl font-black block mt-2 font-display">{topPresentStudent}</span>
-        </div>
-      </div>
-
-      {/* Records Table Card */}
-      <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-xs">
-        <div className="flex justify-between items-center border-b border-slate-100 pb-4 mb-6">
           <div>
-            <h3 className="text-lg font-bold font-display text-slate-900">Attendance Report Table</h3>
-            <p className="text-xs text-slate-400 mt-1">Sifeyn ku saleysan filterka: {filteredRecords.length} records found</p>
+            <h1 className="text-base sm:text-lg font-bold text-slate-900 font-display">
+              Warbixinnada Maaliyadda & Iibka (Financial & Sales Reports)
+            </h1>
+            <p className="text-xs text-slate-500">
+              Faallada dakhliga, kharashaadka, faa'iidada saafiga ah, iyo alaabta ugu iibka badan.
+            </p>
           </div>
-          <button 
-            onClick={handlePrint}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-800 text-white rounded-lg text-xs font-semibold hover:bg-slate-900 transition-colors shadow-sm no-print cursor-pointer"
+        </div>
+
+        <div className="flex items-center gap-2">
+          {/* Timeframe Filter */}
+          <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-bold">
+            <button
+              onClick={() => setDateRange('all')}
+              className={`px-3 py-1.5 rounded-lg cursor-pointer transition-all ${
+                dateRange === 'all' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600'
+              }`}
+            >
+              Dhammaan
+            </button>
+            <button
+              onClick={() => setDateRange('today')}
+              className={`px-3 py-1.5 rounded-lg cursor-pointer transition-all ${
+                dateRange === 'today' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600'
+              }`}
+            >
+              Maanta
+            </button>
+            <button
+              onClick={() => setDateRange('week')}
+              className={`px-3 py-1.5 rounded-lg cursor-pointer transition-all ${
+                dateRange === 'week' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600'
+              }`}
+            >
+              Toddobaadkan
+            </button>
+            <button
+              onClick={() => setDateRange('month')}
+              className={`px-3 py-1.5 rounded-lg cursor-pointer transition-all ${
+                dateRange === 'month' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600'
+              }`}
+            >
+              Bishan
+            </button>
+          </div>
+
+          <button
+            onClick={() => window.print()}
+            className="px-4 py-2 bg-[#042954] hover:bg-[#031d3d] text-white text-xs font-bold rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer transition-colors"
           >
-            <Printer className="w-3.5 h-3.5" />
-            <span>Print Report</span>
+            <Printer className="w-4 h-4 text-[#ffae01]" />
+            <span>Daabac Warbixinta</span>
           </button>
         </div>
+      </div>
 
-        {filteredRecords.length === 0 ? (
-          <div className="text-center py-12 text-slate-400">
-            <ArrowUpDown className="w-12 h-12 mx-auto stroke-1 mb-3 animate-bounce" />
-            <p className="text-sm">Xogta xaadirinta lama helin.</p>
+      {/* Printable Header (Only visible on print) */}
+      <div className="hidden print:block text-center border-b pb-4 mb-4 font-mono">
+        <h2 className="text-xl font-black uppercase">{supermarketName}</h2>
+        <p className="text-xs text-slate-500">Warbixinta Maaliyadda & Iibka Guud</p>
+        <p className="text-[10px] text-slate-400">Taariikhda: {new Date().toLocaleDateString()}</p>
+      </div>
+
+      {/* Profit & Loss Overview Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {/* Gross Sales */}
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+              Iibka Guud (Gross Sales)
+            </span>
+            <div className="p-1.5 bg-blue-50 text-blue-700 rounded-lg">
+              <ShoppingBag className="w-4 h-4" />
+            </div>
           </div>
-        ) : (
-          <div className="overflow-x-auto rounded-lg border border-slate-100">
-            <table className="w-full text-left border-collapse min-w-[650px]">
-              <thead>
-                <tr className="bg-slate-50 text-[#042954] text-xs font-bold uppercase border-b border-slate-100">
-                  <th className="p-4">Taariikh</th>
-                  <th className="p-4">Magaca Ardayga</th>
-                  <th className="p-4">Class</th>
-                  <th className="p-4">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-sm text-slate-600">
-                {filteredRecords.map((r, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="p-4 font-mono font-medium text-[#042954]">{r.date}</td>
-                    <td className="p-4 font-bold text-slate-950">{r.name}</td>
-                    <td className="p-4">{r.form}</td>
-                    <td className="p-4">
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase border tracking-wider ${
-                        r.status === 'present' 
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
-                          : 'bg-red-50 text-red-700 border-red-200'
-                      }`}>
-                        {r.status === 'present' ? 'Jooga' : 'Maqan'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="text-2xl font-black text-slate-900 mt-2">
+            ${grossSalesRevenue.toFixed(2)}
           </div>
-        )}
+          <span className="text-[10px] text-slate-500 mt-1 block">
+            {filteredSales.length} iib oo rasiidh leh
+          </span>
+        </div>
+
+        {/* Cost of Goods Sold */}
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+              Qiimaha Iibsiga (COGS)
+            </span>
+            <div className="p-1.5 bg-amber-50 text-amber-700 rounded-lg">
+              <Package className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="text-2xl font-black text-amber-700 mt-2">
+            ${costOfGoodsSold.toFixed(2)}
+          </div>
+          <span className="text-[10px] text-slate-500 mt-1 block">
+            Kharashka alaabta la iibiyay
+          </span>
+        </div>
+
+        {/* Operating Expenses */}
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+              Kharashaadka Kale (Expenses)
+            </span>
+            <div className="p-1.5 bg-red-50 text-red-700 rounded-lg">
+              <TrendingDown className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="text-2xl font-black text-red-600 mt-2">
+            ${totalOperatingExpenses.toFixed(2)}
+          </div>
+          <span className="text-[10px] text-slate-500 mt-1 block">
+            Kiro, Koronto, Mushahar, Gaadiid
+          </span>
+        </div>
+
+        {/* Net Profit */}
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs bg-linear-to-br from-white to-emerald-50/40">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">
+              Faa'iidada Saafiga ah (Net Profit)
+            </span>
+            <div className="p-1.5 bg-emerald-100 text-emerald-800 rounded-lg">
+              <TrendingUp className="w-4 h-4" />
+            </div>
+          </div>
+          <div className={`text-2xl font-black mt-2 ${netProfit >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>
+            ${netProfit.toFixed(2)}
+          </div>
+          <span className="text-[10px] text-emerald-700 font-bold mt-1 block">
+            {netProfit >= 0 ? 'Faa\'iido nadiif ah' : 'Khasaaro jira'}
+          </span>
+        </div>
+      </div>
+
+      {/* Two Column Grid: Top Selling Products & Payment Distribution */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        {/* Top 5 Products */}
+        <div className="lg:col-span-7 bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="flex items-center gap-2">
+              <Award className="w-4 h-4 text-[#ffae01]" />
+              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                Alaabta Ugu Iibka Badan (Top Selling Products)
+              </h3>
+            </div>
+          </div>
+
+          <div className="space-y-2.5">
+            {topProducts.length === 0 ? (
+              <p className="text-xs text-slate-400 text-center py-6">Weli iib ma dhicin.</p>
+            ) : (
+              topProducts.map((p, idx) => (
+                <div key={idx} className="p-3 bg-slate-50/80 rounded-xl flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-3">
+                    <span className="w-6 h-6 rounded-full bg-[#042954] text-white flex items-center justify-center font-bold text-xs">
+                      #{idx + 1}
+                    </span>
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-900">{p.name}</h4>
+                      <p className="text-[10px] text-slate-400">Tirada la iibiyay: {p.qty} xabbo</p>
+                    </div>
+                  </div>
+                  <span className="text-xs font-black text-[#042954]">
+                    ${p.revenue.toFixed(2)}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Payment Methods Breakdown */}
+        <div className="lg:col-span-5 bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+          <div className="border-b border-slate-100 pb-3">
+            <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+              Hababka Lacag-Bixinta (Payment Distribution)
+            </h3>
+          </div>
+
+          <div className="space-y-2">
+            {Object.entries(paymentBreakdown).map(([method, amtVal]) => {
+              const amt = Number(amtVal) || 0;
+              const pct = grossSalesRevenue > 0 ? ((amt / grossSalesRevenue) * 100).toFixed(1) : '0';
+              return (
+                <div key={method} className="p-3 bg-slate-50 rounded-xl space-y-1">
+                  <div className="flex justify-between text-xs">
+                    <span className="font-bold text-slate-800 uppercase">{method}</span>
+                    <span className="font-black text-slate-900">${amt.toFixed(2)} ({pct}%)</span>
+                  </div>
+                  <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                    <div
+                      className="bg-[#042954] h-1.5 rounded-full"
+                      style={{ width: `${pct}%` }}
+                    ></div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-500 space-y-1">
+            <div className="flex justify-between">
+              <span>Hantida Alaabta Bakhaarka:</span>
+              <span className="font-bold text-slate-800">${totalStockValue.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Daymaha Macaamiisha Lagu Leeyahay:</span>
+              <span className="font-bold text-red-600">${totalCustomerReceivables.toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

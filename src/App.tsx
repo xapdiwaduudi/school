@@ -1,185 +1,84 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  Student, 
-  Teacher, 
-  AttendanceRecord, 
-  ExamResult, 
-  Schedule, 
+  Product, 
+  Category, 
+  Customer, 
+  DebtPayment, 
+  Supplier, 
+  PurchaseOrder, 
+  Employee, 
+  StaffAttendance, 
+  SaleTransaction, 
   Expense, 
-  SchoolData, 
+  FinancialTransaction, 
+  SchoolAccount, 
   AppUser, 
-  UserRole,
-  ParentMessage,
-  FinancialTransaction,
-  SchoolAccount,
-  PaymentSubmission
+  SupermarketData,
+  CurrencySettings,
+  FixedAsset,
+  LiabilityItem,
+  EquityDetails
 } from './types';
-import { subscribeToSchoolData, saveSchoolDataToCloud, fetchSchoolDataFromCloud } from './firebase';
-import { DEFAULT_ACCOUNTS } from './accountsData';
-import Sidebar from './components/Sidebar';
-import Dashboard from './components/Dashboard';
-import StudentsPage from './components/StudentsPage';
-import TeachersPage from './components/TeachersPage';
-import AttendancePage from './components/AttendancePage';
-import FeesPage from './components/FeesPage';
-import AccountingPage from './components/AccountingPage';
-import SchedulePage from './components/SchedulePage';
-import ExpensesPage from './components/ExpensesPage';
-import ExamEntryPage from './components/ExamEntryPage';
-import ExamResultPage from './components/ExamResultPage';
-import TrackerPage from './components/TrackerPage';
-import ParentPortal from './components/ParentPortal';
-import ReportsPage from './components/ReportsPage';
-import SettingsPage from './components/SettingsPage';
-import UsersManagementPage from './components/UsersManagementPage';
-import ClassRankingPage from './components/ClassRankingPage';
-import ParentTeacherChat from './components/ParentTeacherChat';
-import AIAssistantPage from './components/AIAssistantPage';
-import LoginPage from './components/LoginPage';
 import { 
-  LogOut, 
+  INITIAL_SUPERMARKET_DATA, 
+  DEFAULT_PRODUCTS, 
+  DEFAULT_CATEGORIES, 
+  DEFAULT_CUSTOMERS, 
+  DEFAULT_SUPPLIERS, 
+  DEFAULT_EMPLOYEES, 
+  DEFAULT_SALES, 
+  DEFAULT_EXPENSES, 
+  DEFAULT_PURCHASE_ORDERS, 
+  DEFAULT_USERS,
+  DEFAULT_CURRENCY_SETTINGS,
+  DEFAULT_FIXED_ASSETS,
+  DEFAULT_LIABILITIES,
+  DEFAULT_EQUITY
+} from './supermarketData';
+import { DEFAULT_ACCOUNTS } from './accountsData';
+import { 
+  subscribeToSupermarketData, 
+  saveSupermarketDataToCloud, 
+  fetchSupermarketDataFromCloud 
+} from './firebase';
+
+// Components
+import Sidebar from './components/Sidebar';
+import SupermarketDashboard from './components/SupermarketDashboard';
+import POSPage from './components/POSPage';
+import ProductsPage from './components/ProductsPage';
+import CategoriesPage from './components/CategoriesPage';
+import CustomersDebtPage from './components/CustomersDebtPage';
+import SalesHistoryPage from './components/SalesHistoryPage';
+import SuppliersPage from './components/SuppliersPage';
+import EmployeesPage from './components/EmployeesPage';
+import AccountingPage from './components/AccountingPage';
+import ExpensesPage from './components/ExpensesPage';
+import SupermarketLiveChat from './components/SupermarketLiveChat';
+import CustomerPortal from './components/CustomerPortal';
+import ReportsPage from './components/ReportsPage';
+import SupermarketSettingsPage from './components/SupermarketSettingsPage';
+import LoginPage from './components/LoginPage';
+
+// Icons
+import { 
+  Menu, 
+  MessageCircle, 
   UserCheck, 
+  LogOut, 
+  Store, 
   ShieldCheck, 
-  BookOpen, 
-  HeartHandshake, 
-  GraduationCap, 
+  CreditCard, 
+  ShoppingCart, 
+  Users, 
+  Eye, 
+  EyeOff, 
   X, 
-  Menu,
-  Sparkles,
-  Trophy,
-  MessageCircle,
-  Eye,
-  EyeOff,
-  CalendarCheck,
-  CreditCard,
-  DollarSign
+  CheckCircle2 
 } from 'lucide-react';
 
-const LOCAL_STORAGE_KEY = 'XaajiSalaad_SchoolData';
+const LOCAL_STORAGE_KEY = 'XaajiSalaad_SupermarketData';
 const AUTH_STORAGE_KEY = 'XaajiSalaad_CurrentUser';
-
-const DEFAULT_TRANSACTIONS: FinancialTransaction[] = [
-  {
-    id: 'TX-1001',
-    date: new Date().toISOString().split('T')[0],
-    type: 'income',
-    account: 'Zaad',
-    category: 'Student Fees',
-    amount: 350,
-    reference: 'REC-9011',
-    payerPayee: 'Ardayda Class 1-4 (Bixinta Bisha)',
-    note: 'Kharashka waxbarashada bisha ardayda',
-    status: 'completed',
-    createdBy: 'Maamulka'
-  },
-  {
-    id: 'TX-1002',
-    date: new Date().toISOString().split('T')[0],
-    type: 'income',
-    account: 'Dahabshiil Bank',
-    category: 'Uniform Sales',
-    amount: 420,
-    reference: 'REC-9012',
-    payerPayee: 'Waalidiinta (Iibka Dareeska)',
-    note: 'Dareeska cusub ee sanad-dugsiyeedka',
-    status: 'completed',
-    createdBy: 'Maamulka'
-  },
-  {
-    id: 'TX-1003',
-    date: new Date().toISOString().split('T')[0],
-    type: 'expense',
-    account: 'Zaad',
-    category: 'Teacher Salary',
-    amount: 300,
-    reference: 'SAL-TCH-01',
-    payerPayee: 'Ustaad Axmed (Macallin)',
-    note: 'Mushaharka bisha oo dhan',
-    status: 'completed',
-    createdBy: 'Maamulka'
-  },
-  {
-    id: 'TX-1004',
-    date: new Date().toISOString().split('T')[0],
-    type: 'expense',
-    account: 'Cash Box',
-    category: 'Utilities',
-    amount: 65,
-    reference: 'BILL-EL-88',
-    payerPayee: 'Shirkadda Korontada & Biyaha',
-    note: 'Bill-ka korontada & biyaha xafiisyada',
-    status: 'completed',
-    createdBy: 'Maamulka'
-  },
-  {
-    id: 'TX-1005',
-    date: new Date().toISOString().split('T')[0],
-    type: 'transfer',
-    account: 'Zaad',
-    toAccount: 'Dahabshiil Bank',
-    category: 'Other Expense',
-    amount: 500,
-    reference: 'TRF-3321',
-    payerPayee: 'Laga soo wareejiyey Zaad loona wareejiyey Dahabshiil',
-    note: 'Kaydinta lacagaha qasnadda ee bangiga',
-    status: 'completed',
-    createdBy: 'Maamulka'
-  }
-];
-
-const DEFAULT_SUBJECTS = ["Somali", "English", "Arabic", "Maths", "Agriculture", "Physics", "Biology", "ICT"];
-
-const DEFAULT_USERS: AppUser[] = [
-  {
-    id: 'user_admin_1',
-    username: 'admin1',
-    password: '123',
-    role: 'admin',
-    fullName: 'Maamule Sare (Admin)',
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'user_deputy_1',
-    username: 'ku_xigeen1',
-    password: '123',
-    role: 'vice_principal_1',
-    fullName: 'Maamule Ku-xigeenka 1aad (Attendance)',
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'user_deputy_2',
-    username: 'ku_xigeen2',
-    password: '123',
-    role: 'vice_principal_2',
-    fullName: 'Maamule Ku-xigeenka 2aad (Fee Collection)',
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'user_teacher_1',
-    username: 'ustaad1',
-    password: '123',
-    role: 'teacher',
-    fullName: 'Ustaad Axmed (Macallin)',
-    assignedSubject: 'Somali',
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'user_parent_1',
-    username: 'waalid1',
-    password: '123',
-    role: 'parent',
-    fullName: 'Waalid Xasan (Parent)',
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'user_student_1',
-    username: 'arday1',
-    password: '123',
-    role: 'student',
-    fullName: 'Arday Cabdi (Student)',
-    createdAt: new Date().toISOString()
-  }
-];
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
@@ -195,33 +94,44 @@ export default function App() {
         return null;
       }
     }
-    return null;
+    // Default logged-in user: Admin
+    return {
+      id: 'user_admin_1',
+      username: 'admin1',
+      password: '123',
+      role: 'admin',
+      fullName: 'Maamulaha Sare (Manager)',
+      createdAt: new Date().toISOString()
+    };
   });
 
   const [showSwitchModal, setShowSwitchModal] = useState(false);
   const [revealedPasswords, setRevealedPasswords] = useState<{ [id: string]: boolean }>({});
 
-  // Core States
-  const [students, setStudents] = useState<Student[]>([]);
-  const [teachers, setTeachers] = useState<Teacher[]>([]);
-  const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
-  const [exams, setExams] = useState<ExamResult[]>([]);
-  const [schedules, setSchedules] = useState<Schedule[]>([]);
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [transactions, setTransactions] = useState<FinancialTransaction[]>(DEFAULT_TRANSACTIONS);
+  // Supermarket State
+  const [products, setProducts] = useState<Product[]>(DEFAULT_PRODUCTS);
+  const [categories, setCategories] = useState<Category[]>(DEFAULT_CATEGORIES);
+  const [customers, setCustomers] = useState<Customer[]>(DEFAULT_CUSTOMERS);
+  const [debtPayments, setDebtPayments] = useState<DebtPayment[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>(DEFAULT_SUPPLIERS);
+  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>(DEFAULT_PURCHASE_ORDERS);
+  const [employees, setEmployees] = useState<Employee[]>(DEFAULT_EMPLOYEES);
+  const [attendance, setAttendance] = useState<StaffAttendance[]>([]);
+  const [sales, setSales] = useState<SaleTransaction[]>(DEFAULT_SALES);
+  const [expenses, setExpenses] = useState<Expense[]>(DEFAULT_EXPENSES);
+  const [transactions, setTransactions] = useState<FinancialTransaction[]>([]);
   const [accounts, setAccounts] = useState<SchoolAccount[]>(DEFAULT_ACCOUNTS);
-  const [paymentSubmissions, setPaymentSubmissions] = useState<PaymentSubmission[]>([]);
-  const [subjects, setSubjects] = useState<string[]>(DEFAULT_SUBJECTS);
-  const [passThreshold, setPassThreshold] = useState<number>(50);
-  const [schoolName, setSchoolName] = useState<string>('Xaaji Salaad School');
+  const [fixedAssets, setFixedAssets] = useState<FixedAsset[]>(DEFAULT_FIXED_ASSETS);
+  const [liabilities, setLiabilities] = useState<LiabilityItem[]>(DEFAULT_LIABILITIES);
+  const [equityDetails, setEquityDetails] = useState<EquityDetails>(DEFAULT_EQUITY);
   const [users, setUsers] = useState<AppUser[]>(DEFAULT_USERS);
-  const [messages, setMessages] = useState<ParentMessage[]>([]);
+  const [supermarketName, setSupermarketName] = useState('Xaaji Salaad Supermarket');
+  const [currencySettings, setCurrencySettings] = useState<CurrencySettings>(DEFAULT_CURRENCY_SETTINGS);
 
-  // Sync state
+  // Network & Cloud Sync
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
-  // Network listener
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
@@ -235,182 +145,126 @@ export default function App() {
 
   // 1. Initial Load from LocalStorage
   useEffect(() => {
-    const stored = localStorage.getItem(LOCAL_STORAGE_KEY) || localStorage.getItem('Akkhor_SchoolData');
+    const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (stored) {
       try {
-        const data: SchoolData = JSON.parse(stored);
-        if (data.students) setStudents(data.students);
-        if (data.teachers) setTeachers(data.teachers);
-        if (data.attendance) setAttendance(data.attendance);
-        if (data.exams) setExams(data.exams);
-        if (data.schedules) setSchedules(data.schedules);
-        if (data.expenses) setExpenses(data.expenses);
-        if (data.transactions && data.transactions.length > 0) {
-          setTransactions(data.transactions);
-        }
-        if (data.accounts && data.accounts.length > 0) {
-          setAccounts(data.accounts);
-        }
-        if (data.paymentSubmissions && data.paymentSubmissions.length > 0) {
-          setPaymentSubmissions(data.paymentSubmissions);
-        }
-        if (data.subjects) setSubjects(data.subjects);
-        if (data.threshold !== undefined) setPassThreshold(data.threshold);
-        if (data.schoolName && data.schoolName !== 'Akkhor™' && data.schoolName !== 'Akkhor') {
-          setSchoolName(data.schoolName);
-        } else {
-          setSchoolName('Xaaji Salaad School');
-        }
-        if (data.users && data.users.length > 0) {
-          let mergedUsers = [...data.users];
-          DEFAULT_USERS.forEach(defU => {
-            if (!mergedUsers.some(u => u.username === defU.username || u.id === defU.id)) {
-              mergedUsers.push(defU);
-            }
-          });
-          setUsers(mergedUsers);
-        }
-        if (data.messages) setMessages(data.messages);
+        const data: SupermarketData = JSON.parse(stored);
+        if (data.products?.length) setProducts(data.products);
+        if (data.categories?.length) setCategories(data.categories);
+        if (data.customers?.length) setCustomers(data.customers);
+        if (data.debtPayments?.length) setDebtPayments(data.debtPayments);
+        if (data.suppliers?.length) setSuppliers(data.suppliers);
+        if (data.purchaseOrders?.length) setPurchaseOrders(data.purchaseOrders);
+        if (data.employees?.length) setEmployees(data.employees);
+        if (data.attendance?.length) setAttendance(data.attendance);
+        if (data.sales?.length) setSales(data.sales);
+        if (data.expenses?.length) setExpenses(data.expenses);
+        if (data.transactions?.length) setTransactions(data.transactions);
+        if (data.accounts?.length) setAccounts(data.accounts);
+        if (data.fixedAssets?.length) setFixedAssets(data.fixedAssets);
+        if (data.liabilities?.length) setLiabilities(data.liabilities);
+        if (data.equityDetails) setEquityDetails(data.equityDetails);
+        if (data.users?.length) setUsers(data.users);
+        if (data.supermarketName) setSupermarketName(data.supermarketName);
+        if (data.currencySettings) setCurrencySettings(data.currencySettings);
       } catch (e) {
-        console.error("Error parsing local storage school data:", e);
+        console.error('Error loading local data:', e);
       }
     }
   }, []);
 
-  // 2. Real-time Cloud Synchronization with Firebase Firestore
+  // 2. Real-time Firebase Firestore Sync
   useEffect(() => {
     setIsSyncing(true);
-    
-    const unsubscribe = subscribeToSchoolData(
-      (cloudData) => {
-        setIsSyncing(false);
-        setIsOnline(true);
-        if (!cloudData) return;
-
-        if (cloudData.students !== undefined) setStudents(cloudData.students || []);
-        if (cloudData.teachers !== undefined) setTeachers(cloudData.teachers || []);
-        if (cloudData.attendance !== undefined) setAttendance(cloudData.attendance || []);
-        if (cloudData.exams !== undefined) setExams(cloudData.exams || []);
-        if (cloudData.schedules !== undefined) setSchedules(cloudData.schedules || []);
-        if (cloudData.expenses !== undefined) setExpenses(cloudData.expenses || []);
-        if (cloudData.transactions !== undefined && cloudData.transactions.length > 0) {
-          setTransactions(cloudData.transactions);
-        }
-        if (cloudData.accounts !== undefined && cloudData.accounts.length > 0) {
-          setAccounts(cloudData.accounts);
-        }
-        if (cloudData.paymentSubmissions !== undefined) {
-          setPaymentSubmissions(cloudData.paymentSubmissions || []);
-        }
-        if (cloudData.subjects !== undefined && cloudData.subjects.length > 0) {
-          setSubjects(cloudData.subjects);
-        }
-        if (cloudData.threshold !== undefined) setPassThreshold(cloudData.threshold);
-        if (cloudData.schoolName && cloudData.schoolName !== 'Akkhor™' && cloudData.schoolName !== 'Akkhor') {
-          setSchoolName(cloudData.schoolName);
-        } else {
-          setSchoolName('Xaaji Salaad School');
-        }
-        if (cloudData.messages !== undefined) setMessages(cloudData.messages || []);
-        if (cloudData.users !== undefined && cloudData.users.length > 0) {
-          let mergedCloudUsers = [...cloudData.users];
-          DEFAULT_USERS.forEach(defU => {
-            if (!mergedCloudUsers.some(u => u.username === defU.username || u.id === defU.id)) {
-              mergedCloudUsers.push(defU);
-            }
-          });
-          setUsers(mergedCloudUsers);
-          
-          if (currentUser) {
-            const freshUser = mergedCloudUsers.find(u => u.id === currentUser.id);
-            if (freshUser) {
-              setCurrentUser(freshUser);
-              localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(freshUser));
-            }
-          }
-        }
-
-        // Update local backup
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(cloudData));
-      },
-      (error) => {
-        console.warn("Real-time cloud listener notice:", error);
-        setIsSyncing(false);
-      }
-    );
-
-    // Initial check: If cloud is empty, seed defaults
-    fetchSchoolDataFromCloud().then((remoteData) => {
+    const unsubscribe = subscribeToSupermarketData((cloudData) => {
       setIsSyncing(false);
-      if (!remoteData || !remoteData.users || remoteData.users.length === 0) {
-        const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-        let exportData: SchoolData;
-        if (stored) {
-          try {
-            exportData = JSON.parse(stored);
-            if (!exportData.users || exportData.users.length === 0) {
-              exportData.users = DEFAULT_USERS;
-            }
-          } catch (e) {
-            exportData = {
-              students: [],
-              teachers: [],
-              attendance: [],
-              exams: [],
-              schedules: [],
-              expenses: [],
-              transactions: DEFAULT_TRANSACTIONS,
-              accounts: DEFAULT_ACCOUNTS,
-              paymentSubmissions: [],
-              subjects: DEFAULT_SUBJECTS,
-              threshold: 50,
-              schoolName: 'Xaaji Salaad School',
-              users: DEFAULT_USERS,
-              messages: []
-            };
-          }
-        } else {
-          exportData = {
-            students: [],
-            teachers: [],
-            attendance: [],
-            exams: [],
-            schedules: [],
-            expenses: [],
-            transactions: DEFAULT_TRANSACTIONS,
-            accounts: DEFAULT_ACCOUNTS,
-            paymentSubmissions: [],
-            subjects: DEFAULT_SUBJECTS,
-            threshold: 50,
-            schoolName: 'Xaaji Salaad School',
-            users: DEFAULT_USERS,
-            messages: []
-          };
-        }
-        saveSchoolDataToCloud(exportData);
+      if (cloudData) {
+        if (cloudData.products?.length) setProducts(cloudData.products);
+        if (cloudData.categories?.length) setCategories(cloudData.categories);
+        if (cloudData.customers?.length) setCustomers(cloudData.customers);
+        if (cloudData.debtPayments?.length) setDebtPayments(cloudData.debtPayments);
+        if (cloudData.suppliers?.length) setSuppliers(cloudData.suppliers);
+        if (cloudData.purchaseOrders?.length) setPurchaseOrders(cloudData.purchaseOrders);
+        if (cloudData.employees?.length) setEmployees(cloudData.employees);
+        if (cloudData.attendance?.length) setAttendance(cloudData.attendance);
+        if (cloudData.sales?.length) setSales(cloudData.sales);
+        if (cloudData.expenses?.length) setExpenses(cloudData.expenses);
+        if (cloudData.transactions?.length) setTransactions(cloudData.transactions);
+        if (cloudData.accounts?.length) setAccounts(cloudData.accounts);
+        if (cloudData.fixedAssets?.length) setFixedAssets(cloudData.fixedAssets);
+        if (cloudData.liabilities?.length) setLiabilities(cloudData.liabilities);
+        if (cloudData.equityDetails) setEquityDetails(cloudData.equityDetails);
+        if (cloudData.users?.length) setUsers(cloudData.users);
+        if (cloudData.supermarketName) setSupermarketName(cloudData.supermarketName);
+        if (cloudData.currencySettings) setCurrencySettings(cloudData.currencySettings);
       }
     });
 
-    return () => {
-      unsubscribe();
-    };
+    return () => unsubscribe();
   }, []);
 
-  // Update active tab when user logs in to respect role permissions
-  const handleUserLogin = (user: AppUser) => {
+  // Combined data structure
+  const currentSupermarketData = useMemo<SupermarketData>(() => ({
+    supermarketName,
+    products,
+    categories,
+    customers,
+    debtPayments,
+    suppliers,
+    purchaseOrders,
+    employees,
+    attendance,
+    sales,
+    expenses,
+    transactions,
+    accounts,
+    fixedAssets,
+    liabilities,
+    equityDetails,
+    users,
+    currencySettings,
+    messages: []
+  }), [
+    supermarketName,
+    products,
+    categories,
+    customers,
+    debtPayments,
+    suppliers,
+    purchaseOrders,
+    employees,
+    attendance,
+    sales,
+    expenses,
+    transactions,
+    accounts,
+    fixedAssets,
+    liabilities,
+    equityDetails,
+    users,
+    currencySettings
+  ]);
+
+  // Persist helper
+  const persistData = (updatedData: Partial<SupermarketData>) => {
+    const fullData: SupermarketData = {
+      ...currentSupermarketData,
+      ...updatedData
+    };
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(fullData));
+    saveSupermarketDataToCloud(fullData);
+  };
+
+  // Login / Logout
+  const handleLogin = (user: AppUser) => {
     setCurrentUser(user);
     localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
 
-    if (user.role === 'vice_principal_1') {
-      setActiveTab('attendance');
-    } else if (user.role === 'vice_principal_2') {
-      setActiveTab('fees');
-    } else if (user.role === 'teacher') {
-      setActiveTab('exam-input');
-    } else if (user.role === 'parent') {
-      setActiveTab('parent');
-    } else if (user.role === 'student') {
-      setActiveTab('exam-portal');
+    // Role redirection
+    if (user.role === 'customer') {
+      setActiveTab('customer-portal');
+    } else if (user.role === 'cashier') {
+      setActiveTab('pos');
     } else {
       setActiveTab('dashboard');
     }
@@ -422,477 +276,496 @@ export default function App() {
     setShowSwitchModal(false);
   };
 
-  const handleQuickSwitch = (targetUser: AppUser) => {
-    handleUserLogin(targetUser);
+  const handleQuickSwitch = (u: AppUser) => {
+    handleLogin(u);
     setShowSwitchModal(false);
   };
 
-  // General Save Callback that writes to Firestore Cloud AND LocalStorage
-  const saveAllData = async (
-    updatedStudents?: Student[],
-    updatedExams?: ExamResult[],
-    updatedSubjects?: string[],
-    updatedThreshold?: number,
-    updatedSchoolName?: string,
-    updatedUsers?: AppUser[],
-    updatedMessages?: ParentMessage[],
-    updatedTransactions?: FinancialTransaction[],
-    updatedAccounts?: SchoolAccount[],
-    updatedPaymentSubmissions?: PaymentSubmission[],
-    updatedTeachers?: Teacher[],
-    updatedAttendance?: AttendanceRecord[],
-    updatedSchedules?: Schedule[],
-    updatedExpenses?: Expense[]
-  ) => {
-    const freshStudents = updatedStudents !== undefined ? updatedStudents : students;
-    const freshTeachers = updatedTeachers !== undefined ? updatedTeachers : teachers;
-    const freshAttendance = updatedAttendance !== undefined ? updatedAttendance : attendance;
-    const freshExams = updatedExams !== undefined ? updatedExams : exams;
-    const freshSchedules = updatedSchedules !== undefined ? updatedSchedules : schedules;
-    const freshExpenses = updatedExpenses !== undefined ? updatedExpenses : expenses;
-    const freshSubjects = updatedSubjects !== undefined ? updatedSubjects : subjects;
-    const freshThreshold = updatedThreshold !== undefined ? updatedThreshold : passThreshold;
-    const freshSchoolName = updatedSchoolName !== undefined ? updatedSchoolName : schoolName;
-    const freshUsers = updatedUsers !== undefined ? updatedUsers : users;
-    const freshMessages = updatedMessages !== undefined ? updatedMessages : messages;
-    const freshTransactions = updatedTransactions !== undefined ? updatedTransactions : transactions;
-    const freshAccounts = updatedAccounts !== undefined ? updatedAccounts : accounts;
-    const freshPaymentSubmissions = updatedPaymentSubmissions !== undefined ? updatedPaymentSubmissions : paymentSubmissions;
+  // ----------------------------------------------------
+  // BUSINESS LOGIC ACTIONS
+  // ----------------------------------------------------
 
-    const exportObject: SchoolData = {
-      students: freshStudents,
-      attendance: freshAttendance,
-      exams: freshExams,
-      schedules: freshSchedules,
-      expenses: freshExpenses,
-      transactions: freshTransactions,
-      teachers: freshTeachers,
-      subjects: freshSubjects,
-      threshold: freshThreshold,
-      schoolName: freshSchoolName,
-      users: freshUsers,
-      messages: freshMessages,
-      accounts: freshAccounts,
-      paymentSubmissions: freshPaymentSubmissions
+  // POS Sale Complete
+  const handleCompleteSale = (sale: SaleTransaction) => {
+    // 1. Update product stock quantities
+    const updatedProducts = products.map(p => {
+      const soldItem = sale.items.find(i => i.productId === p.id);
+      if (soldItem) {
+        return {
+          ...p,
+          stockQty: Math.max(0, p.stockQty - soldItem.qty)
+        };
+      }
+      return p;
+    });
+
+    // 2. If credit sale, increment customer debt
+    let updatedCustomers = customers;
+    if (sale.paymentMethod === 'credit' && sale.customerId) {
+      updatedCustomers = customers.map(c => {
+        if (c.id === sale.customerId) {
+          return {
+            ...c,
+            totalDebt: c.totalDebt + sale.total,
+            points: (c.points || 0) + Math.floor(sale.total)
+          };
+        }
+        return c;
+      });
+    }
+
+    // 3. Record transaction in accounting if not credit
+    const newSales = [sale, ...sales];
+    let newTransactions = transactions;
+
+    if (sale.paymentMethod !== 'credit') {
+      const newTx: FinancialTransaction = {
+        id: `TX_${Date.now()}`,
+        date: sale.date,
+        type: 'income',
+        account: sale.accountName || 'Cash Box',
+        category: 'POS Daily Sales',
+        amount: sale.total,
+        reference: sale.receiptNo,
+        payerPayee: `${sale.customerName} (POS Iib)`,
+        note: `Iibka Rasiidhka #${sale.receiptNo}`,
+        status: 'completed',
+        createdBy: sale.cashierName
+      };
+      newTransactions = [newTx, ...transactions];
+    }
+
+    setProducts(updatedProducts);
+    setCustomers(updatedCustomers);
+    setSales(newSales);
+    setTransactions(newTransactions);
+
+    persistData({
+      products: updatedProducts,
+      customers: updatedCustomers,
+      sales: newSales,
+      transactions: newTransactions
+    });
+  };
+
+  // Customer Debt Repayment
+  const handleRecordDebtPayment = (payment: DebtPayment) => {
+    const updatedCustomers = customers.map(c => {
+      if (c.id === payment.customerId) {
+        return {
+          ...c,
+          totalDebt: Math.max(0, c.totalDebt - payment.amount)
+        };
+      }
+      return c;
+    });
+
+    const newPayments = [payment, ...debtPayments];
+
+    // Record Treasury Transaction
+    const newTx: FinancialTransaction = {
+      id: `TX_DEBT_${Date.now()}`,
+      date: payment.date,
+      type: 'income',
+      account: payment.account,
+      category: 'Customer Debt Repayments',
+      amount: payment.amount,
+      reference: payment.reference || `DEBT-PAY-${Date.now()}`,
+      payerPayee: `${payment.customerName} (Bixinta Daynta)`,
+      note: payment.note || 'Bixinta daynta macmiilka',
+      status: 'completed',
+      createdBy: payment.receivedBy
     };
+    const newTransactions = [newTx, ...transactions];
 
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(exportObject));
+    setCustomers(updatedCustomers);
+    setDebtPayments(newPayments);
+    setTransactions(newTransactions);
 
-    try {
-      setIsSyncing(true);
-      await saveSchoolDataToCloud(exportObject);
-      setIsSyncing(false);
-    } catch (err) {
-      console.warn("Could not push changes to cloud:", err);
-      setIsSyncing(false);
+    persistData({
+      customers: updatedCustomers,
+      debtPayments: newPayments,
+      transactions: newTransactions
+    });
+  };
+
+  // Add Product
+  const handleAddProduct = (newProd: Product) => {
+    const updated = [newProd, ...products];
+    setProducts(updated);
+    persistData({ products: updated });
+  };
+
+  // Update Product
+  const handleUpdateProduct = (updatedProd: Product) => {
+    const updated = products.map(p => p.id === updatedProd.id ? updatedProd : p);
+    setProducts(updated);
+    persistData({ products: updated });
+  };
+
+  // Delete Product
+  const handleDeleteProduct = (prodId: string) => {
+    const updated = products.filter(p => p.id !== prodId);
+    setProducts(updated);
+    persistData({ products: updated });
+  };
+
+  // Add Customer
+  const handleAddCustomer = (newCust: Customer) => {
+    const updated = [newCust, ...customers];
+    setCustomers(updated);
+    persistData({ customers: updated });
+  };
+
+  // Add Category
+  const handleAddCategory = (newCat: Category) => {
+    const updated = [...categories, newCat];
+    setCategories(updated);
+    persistData({ categories: updated });
+  };
+
+  // Add Supplier
+  const handleAddSupplier = (newSup: Supplier) => {
+    const updated = [...suppliers, newSup];
+    setSuppliers(updated);
+    persistData({ suppliers: updated });
+  };
+
+  // Record Purchase Order Delivery
+  const handleRecordPurchase = (po: PurchaseOrder) => {
+    const updatedPurchases = [po, ...purchaseOrders];
+
+    // If there is balance owed, add to supplier debt
+    let updatedSuppliers = suppliers;
+    if (po.balance > 0) {
+      updatedSuppliers = suppliers.map(s => {
+        if (s.id === po.supplierId) {
+          return {
+            ...s,
+            balanceOwed: s.balanceOwed + po.balance
+          };
+        }
+        return s;
+      });
     }
+
+    setPurchaseOrders(updatedPurchases);
+    setSuppliers(updatedSuppliers);
+    persistData({
+      purchaseOrders: updatedPurchases,
+      suppliers: updatedSuppliers
+    });
   };
 
-  const handleAccountsSave = async (updatedAccounts: SchoolAccount[]) => {
-    setAccounts(updatedAccounts);
-    saveAllData(undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, updatedAccounts);
+  // Add Employee
+  const handleAddEmployee = (newEmp: Employee) => {
+    const updated = [...employees, newEmp];
+    setEmployees(updated);
+    persistData({ employees: updated });
   };
 
-  const handlePaymentSubmissionsSave = async (updatedSubmissions: PaymentSubmission[]) => {
-    setPaymentSubmissions(updatedSubmissions);
-    saveAllData(undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, updatedSubmissions);
-  };
-
-  const handleStudentsSave = (updatedStudents: Student[], updatedUsers?: AppUser[]) => {
-    setStudents(updatedStudents);
-    if (updatedUsers) {
-      setUsers(updatedUsers);
-      saveAllData(updatedStudents, undefined, undefined, undefined, undefined, updatedUsers);
+  // Record Attendance
+  const handleRecordAttendance = (att: StaffAttendance) => {
+    const existingIndex = attendance.findIndex(a => a.employeeId === att.employeeId && a.date === att.date);
+    let updated: StaffAttendance[];
+    if (existingIndex >= 0) {
+      updated = [...attendance];
+      updated[existingIndex] = att;
     } else {
-      saveAllData(updatedStudents);
+      updated = [att, ...attendance];
     }
+    setAttendance(updated);
+    persistData({ attendance: updated });
   };
 
-  const handleTransactionsSave = async (updatedTransactions: FinancialTransaction[]) => {
-    setTransactions(updatedTransactions);
-    saveAllData(undefined, undefined, undefined, undefined, undefined, undefined, undefined, updatedTransactions);
-  };
-
-  const handleTeachersSave = async (updatedTeachers: Teacher[], updatedUsers?: AppUser[]) => {
-    setTeachers(updatedTeachers);
-    if (updatedUsers) {
-      setUsers(updatedUsers);
-      saveAllData(undefined, undefined, undefined, undefined, undefined, updatedUsers, undefined, undefined, undefined, undefined, updatedTeachers);
-    } else {
-      saveAllData(undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, updatedTeachers);
-    }
-  };
-
-  const handleAttendanceSave = async (updatedAttendance: AttendanceRecord[]) => {
-    setAttendance(updatedAttendance);
-    saveAllData(undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, updatedAttendance);
-  };
-
-  const handleExamsSave = (updatedExams: ExamResult[]) => {
-    setExams(updatedExams);
-    saveAllData(undefined, updatedExams);
-  };
-
-  const handleSchedulesSave = async (updatedSchedules: Schedule[]) => {
-    setSchedules(updatedSchedules);
-    saveAllData(undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, updatedSchedules);
-  };
-
-  const handleExpensesSave = async (updatedExpenses: Expense[]) => {
-    setExpenses(updatedExpenses);
-    saveAllData(undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, updatedExpenses);
-  };
-
-  const handleUsersSave = (updatedUsers: AppUser[]) => {
-    setUsers(updatedUsers);
-    saveAllData(undefined, undefined, undefined, undefined, undefined, updatedUsers);
-  };
-
-  const handleMessagesSave = (updatedMessages: ParentMessage[]) => {
-    setMessages(updatedMessages);
-    saveAllData(undefined, undefined, undefined, undefined, undefined, undefined, updatedMessages);
-  };
-
-  const handleClearAllData = async () => {
+  // Reset sample data
+  const handleResetData = () => {
     localStorage.removeItem(LOCAL_STORAGE_KEY);
-    setStudents([]);
-    setTeachers([]);
-    setAttendance([]);
-    setExams([]);
-    setSchedules([]);
-    setExpenses([]);
-    setSubjects(DEFAULT_SUBJECTS);
-    setPassThreshold(50);
-    setSchoolName('Xaaji Salaad School');
-    setUsers(DEFAULT_USERS);
-    setMessages([]);
-
-    const emptyData: SchoolData = {
-      students: [],
-      teachers: [],
-      attendance: [],
-      exams: [],
-      schedules: [],
-      expenses: [],
-      subjects: DEFAULT_SUBJECTS,
-      threshold: 50,
-      schoolName: 'Xaaji Salaad School',
-      users: DEFAULT_USERS,
-      messages: []
-    };
-
-    try {
-      setIsSyncing(true);
-      await saveSchoolDataToCloud(emptyData);
-      setIsSyncing(false);
-    } catch (err) {
-      console.warn("Failed to clear cloud data:", err);
-      setIsSyncing(false);
-    }
-
-    alert("Dhammaan xogta waa la tirtiray online & offline-ba!");
-    setActiveTab('dashboard');
+    setProducts(DEFAULT_PRODUCTS);
+    setCategories(DEFAULT_CATEGORIES);
+    setCustomers(DEFAULT_CUSTOMERS);
+    setSuppliers(DEFAULT_SUPPLIERS);
+    setEmployees(DEFAULT_EMPLOYEES);
+    setSales(DEFAULT_SALES);
+    setExpenses(DEFAULT_EXPENSES);
+    setAccounts(DEFAULT_ACCOUNTS);
+    setSupermarketName('Xaaji Salaad Supermarket');
+    setCurrencySettings(DEFAULT_CURRENCY_SETTINGS);
+    persistData(INITIAL_SUPERMARKET_DATA);
   };
 
-  // If not logged in, render the login page
+  // Reset all financial balances and transactions to $0 ("dhamaan ka dhig 0$")
+  const handleResetAllToZero = () => {
+    const resetAccounts = accounts.map(acc => ({ ...acc, balance: 0 }));
+    const resetCustomers = customers.map(c => ({ ...c, totalDebt: 0 }));
+    const resetSuppliers = suppliers.map(s => ({ ...s, balanceOwed: 0 }));
+
+    setAccounts(resetAccounts);
+    setCustomers(resetCustomers);
+    setSuppliers(resetSuppliers);
+    setSales([]);
+    setExpenses([]);
+    setTransactions([]);
+    setDebtPayments([]);
+    setPurchaseOrders([]);
+
+    persistData({
+      accounts: resetAccounts,
+      customers: resetCustomers,
+      suppliers: resetSuppliers,
+      sales: [],
+      expenses: [],
+      transactions: [],
+      debtPayments: [],
+      purchaseOrders: []
+    });
+  };
+
+  // If not logged in, show LoginPage
   if (!currentUser) {
     return (
       <LoginPage 
         users={users} 
-        onLogin={handleUserLogin} 
-        schoolName={schoolName}
+        onLogin={handleLogin} 
+        supermarketName={supermarketName}
         isOnline={isOnline}
       />
     );
   }
 
+  // Render active page
   const renderActivePage = () => {
-    // Role protection checks: ensure all roles can access chat, ranking, and ai-assistant
-    if (currentUser.role === 'vice_principal_1' && !['attendance', 'chat', 'ranking', 'ai-assistant'].includes(activeTab)) {
-      return <AttendancePage students={students} attendance={attendance} setAttendance={setAttendance} saveData={handleAttendanceSave} />;
-    }
-    if (currentUser.role === 'vice_principal_2' && !['fees', 'accounting', 'chat', 'ranking', 'ai-assistant'].includes(activeTab)) {
-      return (
-        <FeesPage 
-          students={students} 
-          setStudents={setStudents} 
-          saveData={handleStudentsSave}
-          accounts={accounts}
-          paymentSubmissions={paymentSubmissions}
-          setPaymentSubmissions={setPaymentSubmissions}
-          savePaymentSubmissions={handlePaymentSubmissionsSave}
-          transactions={transactions}
-          setTransactions={setTransactions}
-          saveTransactions={handleTransactionsSave}
-          currentUser={currentUser}
-        />
-      );
-    }
-    if (currentUser.role === 'teacher' && !['exam-input', 'chat', 'ai-assistant'].includes(activeTab)) {
-      return (
-        <ExamEntryPage 
-          students={students} 
-          subjects={subjects} 
-          exams={exams} 
-          setExams={setExams} 
-          saveData={handleExamsSave} 
-          passThreshold={passThreshold} 
-          currentUser={currentUser}
-        />
-      );
-    }
-    if (currentUser.role === 'parent' && !['parent', 'chat', 'ranking', 'ai-assistant'].includes(activeTab)) {
-      return (
-        <ParentPortal 
-          students={students} 
-          attendance={attendance} 
-          exams={exams} 
-          passThreshold={passThreshold}
-          currentUser={currentUser}
-          accounts={accounts}
-          paymentSubmissions={paymentSubmissions}
-          setPaymentSubmissions={setPaymentSubmissions}
-          savePaymentSubmissions={handlePaymentSubmissionsSave}
-        />
-      );
-    }
-    if (currentUser.role === 'student' && !['exam-portal', 'chat', 'ai-assistant'].includes(activeTab)) {
-      return <ExamResultPage students={students} exams={exams} />;
-    }
-
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard students={students} teachers={teachers} expenses={expenses} schoolName={schoolName} />;
-      case 'ranking':
         return (
-          <ClassRankingPage 
-            students={students} 
-            exams={exams} 
-            subjects={subjects} 
-            passThreshold={passThreshold} 
-            schoolName={schoolName} 
+          <SupermarketDashboard
+            products={products}
+            sales={sales}
+            customers={customers}
+            suppliers={suppliers}
+            expenses={expenses}
+            employees={employees}
+            supermarketName={supermarketName}
+            currencySettings={currencySettings}
+            onNavigate={(tab) => setActiveTab(tab)}
           />
         );
-      case 'chat':
+
+      case 'pos':
         return (
-          <ParentTeacherChat 
-            students={students} 
-            teachers={teachers} 
-            users={users}
-            messages={messages} 
-            setMessages={setMessages} 
-            saveMessages={handleMessagesSave} 
-            currentUser={currentUser} 
-            schoolName={schoolName}
-          />
-        );
-      case 'ai-assistant':
-        return (
-          <AIAssistantPage 
-            students={students} 
-            teachers={teachers} 
-            exams={exams} 
-            subjects={subjects} 
-            currentUser={currentUser} 
-            schoolName={schoolName} 
-          />
-        );
-      case 'student':
-        return (
-          <StudentsPage 
-            students={students} 
-            setStudents={setStudents} 
-            saveData={handleStudentsSave} 
-            users={users} 
-          />
-        );
-      case 'teacher':
-        return (
-          <TeachersPage 
-            teachers={teachers} 
-            setTeachers={setTeachers} 
-            saveData={handleTeachersSave} 
-            users={users} 
-            subjects={subjects} 
-          />
-        );
-      case 'attendance':
-        return <AttendancePage students={students} attendance={attendance} setAttendance={setAttendance} saveData={handleAttendanceSave} />;
-      case 'fees':
-        return (
-          <FeesPage 
-            students={students} 
-            setStudents={setStudents} 
-            saveData={handleStudentsSave}
+          <POSPage
+            products={products}
+            categories={categories}
+            customers={customers}
             accounts={accounts}
-            paymentSubmissions={paymentSubmissions}
-            setPaymentSubmissions={setPaymentSubmissions}
-            savePaymentSubmissions={handlePaymentSubmissionsSave}
-            transactions={transactions}
-            setTransactions={setTransactions}
-            saveTransactions={handleTransactionsSave}
             currentUser={currentUser}
+            currencySettings={currencySettings}
+            onCompleteSale={handleCompleteSale}
+            onAddCustomer={handleAddCustomer}
           />
         );
+
+      case 'products':
+        return (
+          <ProductsPage
+            products={products}
+            categories={categories}
+            suppliers={suppliers}
+            onAddProduct={handleAddProduct}
+            onUpdateProduct={handleUpdateProduct}
+            onDeleteProduct={handleDeleteProduct}
+          />
+        );
+
+      case 'categories':
+        return (
+          <CategoriesPage
+            categories={categories}
+            products={products}
+            onAddCategory={handleAddCategory}
+          />
+        );
+
+      case 'customers':
+        return (
+          <CustomersDebtPage
+            customers={customers}
+            debtPayments={debtPayments}
+            accounts={accounts}
+            currentUser={currentUser}
+            onAddCustomer={handleAddCustomer}
+            onRecordPayment={handleRecordDebtPayment}
+          />
+        );
+
+      case 'sales':
+        return (
+          <SalesHistoryPage
+            sales={sales}
+          />
+        );
+
+      case 'suppliers':
+        return (
+          <SuppliersPage
+            suppliers={suppliers}
+            purchases={purchaseOrders}
+            products={products}
+            onAddSupplier={handleAddSupplier}
+            onRecordPurchase={handleRecordPurchase}
+          />
+        );
+
+      case 'employees':
+        return (
+          <EmployeesPage
+            employees={employees}
+            attendance={attendance}
+            onAddEmployee={handleAddEmployee}
+            onRecordAttendance={handleRecordAttendance}
+          />
+        );
+
       case 'accounting':
         return (
-          <AccountingPage 
-            transactions={transactions} 
-            setTransactions={setTransactions} 
-            saveTransactions={handleTransactionsSave} 
-            teachers={teachers} 
-            students={students} 
-            currentUser={currentUser} 
-            schoolName={schoolName}
+          <AccountingPage
+            transactions={transactions}
+            setTransactions={setTransactions}
+            saveTransactions={(txs) => {
+              setTransactions(txs);
+              persistData({ transactions: txs });
+            }}
             accounts={accounts}
             setAccounts={setAccounts}
-            saveAccounts={handleAccountsSave}
+            saveAccounts={(accs) => {
+              setAccounts(accs);
+              persistData({ accounts: accs });
+            }}
+            schoolName={supermarketName}
+            currentUser={currentUser}
+            fixedAssets={fixedAssets}
+            setFixedAssets={setFixedAssets}
+            saveFixedAssets={(assets) => {
+              setFixedAssets(assets);
+              persistData({ fixedAssets: assets });
+            }}
+            liabilities={liabilities}
+            setLiabilities={setLiabilities}
+            saveLiabilities={(liabs) => {
+              setLiabilities(liabs);
+              persistData({ liabilities: liabs });
+            }}
+            equityDetails={equityDetails}
+            setEquityDetails={setEquityDetails}
+            saveEquityDetails={(eq) => {
+              setEquityDetails(eq);
+              persistData({ equityDetails: eq });
+            }}
+            products={products}
+            customers={customers}
+            suppliers={suppliers}
+            expenses={expenses}
+            sales={sales}
           />
         );
-      case 'schedule':
-        return <SchedulePage schedules={schedules} setSchedules={setSchedules} saveData={handleSchedulesSave} />;
+
       case 'expenses':
         return (
-          <ExpensesPage 
-            expenses={expenses} 
-            setExpenses={setExpenses} 
-            saveData={handleExpensesSave}
+          <ExpensesPage
+            expenses={expenses}
+            setExpenses={setExpenses}
+            saveData={(exps) => {
+              setExpenses(exps);
+              persistData({ expenses: exps });
+            }}
             accounts={accounts}
             transactions={transactions}
             setTransactions={setTransactions}
-            saveTransactions={handleTransactionsSave}
+            saveTransactions={(txs) => {
+              setTransactions(txs);
+              persistData({ transactions: txs });
+            }}
             currentUser={currentUser}
           />
         );
-      case 'exam-input':
+
+      case 'chat':
         return (
-          <ExamEntryPage 
-            students={students} 
-            subjects={subjects} 
-            exams={exams} 
-            setExams={setExams} 
-            saveData={handleExamsSave} 
-            passThreshold={passThreshold} 
+          <SupermarketLiveChat
             currentUser={currentUser}
+            customers={customers}
+            employees={employees}
+            suppliers={suppliers}
+            supermarketName={supermarketName}
           />
         );
-      case 'exam-portal':
-        return <ExamResultPage students={students} exams={exams} />;
-      case 'tracker':
-        return <TrackerPage students={students} attendance={attendance} exams={exams} passThreshold={passThreshold} />;
-      case 'parent':
+
+      case 'customer-portal':
         return (
-          <ParentPortal 
-            students={students} 
-            attendance={attendance} 
-            exams={exams} 
-            passThreshold={passThreshold}
+          <CustomerPortal
             currentUser={currentUser}
-            accounts={accounts}
-            paymentSubmissions={paymentSubmissions}
-            setPaymentSubmissions={setPaymentSubmissions}
-            savePaymentSubmissions={handlePaymentSubmissionsSave}
+            customers={customers}
+            sales={sales}
+            debtPayments={debtPayments}
+            onOpenChat={() => setActiveTab('chat')}
           />
         );
-      case 'report':
-        return <ReportsPage attendance={attendance} />;
-      case 'users':
+
+      case 'reports':
         return (
-          <UsersManagementPage 
-            users={users} 
-            setUsers={setUsers} 
-            saveData={handleUsersSave}
-            students={students}
-            teachers={teachers}
-            subjects={subjects}
+          <ReportsPage
+            sales={sales}
+            products={products}
+            expenses={expenses}
+            customers={customers}
+            supermarketName={supermarketName}
           />
         );
+
       case 'settings':
         return (
-          <SettingsPage 
-            students={students} 
-            setStudents={setStudents} 
-            exams={exams} 
-            setExams={setExams} 
-            subjects={subjects} 
-            setSubjects={setSubjects} 
-            passThreshold={passThreshold} 
-            setPassThreshold={setPassThreshold} 
-            schoolName={schoolName} 
-            setSchoolName={setSchoolName} 
-            saveAllData={saveAllData} 
-            clearAllData={handleClearAllData}
-            accounts={accounts}
-            setAccounts={setAccounts}
-            saveAccounts={handleAccountsSave}
+          <SupermarketSettingsPage
+            supermarketData={currentSupermarketData}
+            currencySettings={currencySettings}
+            onUpdateCurrencySettings={(curr) => {
+              setCurrencySettings(curr);
+              persistData({ currencySettings: curr });
+            }}
+            onUpdateData={(partial) => {
+              if (partial.supermarketName) setSupermarketName(partial.supermarketName);
+              if (partial.currencySettings) setCurrencySettings(partial.currencySettings);
+              persistData(partial);
+            }}
+            onResetData={handleResetData}
+            onResetAllToZero={handleResetAllToZero}
           />
         );
+
       default:
-        return <Dashboard students={students} teachers={teachers} expenses={expenses} />;
-    }
-  };
-
-  const getRoleBadgeUI = (role: UserRole) => {
-    switch (role) {
-      case 'admin':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-200">
-            <ShieldCheck className="w-3 h-3 text-amber-700" />
-            <span>Admin</span>
-          </span>
-        );
-      case 'vice_principal_1':
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-cyan-100 text-cyan-900 border border-cyan-200">
-            <CalendarCheck className="w-3 h-3 text-cyan-700" />
-            <span>Ku-xigeen 1aad (Attendance)</span>
-          </span>
-        );
-      case 'vice_principal_2':
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-200">
-            <CreditCard className="w-3 h-3 text-amber-700" />
-            <span>Ku-xigeen 2aad (Fees)</span>
-          </span>
-        );
-      case 'teacher':
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-100 text-blue-900 border border-blue-200">
-            <BookOpen className="w-3 h-3 text-blue-700" />
-            <span>Macallin ({currentUser.assignedSubject || 'Teacher'})</span>
-          </span>
-        );
-      case 'parent':
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-200">
-            <HeartHandshake className="w-3 h-3 text-emerald-700" />
-            <span>Waalid</span>
-          </span>
-        );
-      case 'student':
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-100 text-purple-900 border border-purple-200">
-            <GraduationCap className="w-3 h-3 text-purple-700" />
-            <span>Arday</span>
-          </span>
+          <SupermarketDashboard
+            products={products}
+            sales={sales}
+            customers={customers}
+            suppliers={suppliers}
+            expenses={expenses}
+            employees={employees}
+            supermarketName={supermarketName}
+            onNavigate={(tab) => setActiveTab(tab)}
+          />
         );
     }
   };
 
-  const toggleRevealPassword = (userId: string) => {
-    setRevealedPasswords(prev => ({
-      ...prev,
-      [userId]: !prev[userId]
-    }));
-  };
+  const lowStockCount = products.filter(p => p.stockQty <= (p.minAlertQty || p.minStockLevel || 10)).length;
 
   return (
-    <div className="min-h-screen bg-[#f0f1f3] flex flex-col font-sans">
+    <div className="min-h-screen bg-[#f1f3f6] flex flex-col font-sans text-slate-800">
       {/* Sidebar Navigation */}
       <Sidebar 
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 
-        schoolName={schoolName}
+        supermarketName={supermarketName}
         isOnline={isOnline}
         isSyncing={isSyncing}
         currentUser={currentUser}
@@ -900,76 +773,75 @@ export default function App() {
         onSwitchUser={() => setShowSwitchModal(true)}
         isMobileOpen={isMobileMenuOpen}
         setIsMobileOpen={setIsMobileMenuOpen}
-        pendingReceiptsCount={paymentSubmissions.filter(s => s.status === 'pending').length}
+        lowStockCount={lowStockCount}
       />
 
-      {/* Main content body wrapper */}
+      {/* Main content wrapper */}
       <div className="flex-1 lg:ml-64 min-h-screen flex flex-col">
-        {/* Top Header Bar with Mobile Drawer Toggle, Switch User & Logout */}
-        <header className="bg-white border-b border-slate-200 px-4 sm:px-8 py-3.5 flex items-center justify-between sticky top-0 z-30 shadow-xs no-print">
+        {/* Top Header Bar */}
+        <header className="bg-white border-b border-slate-200 px-4 sm:px-6 py-3 flex items-center justify-between sticky top-0 z-30 shadow-xs no-print">
           <div className="flex items-center gap-3">
-            {/* Hamburger Button for Mobile */}
             <button
               onClick={() => setIsMobileMenuOpen(true)}
-              className="lg:hidden p-2 text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+              className="lg:hidden p-2 text-slate-700 hover:bg-slate-100 rounded-xl cursor-pointer"
               aria-label="Fur Menu-ga"
             >
               <Menu className="w-5 h-5" />
             </button>
 
-            <h1 className="text-xs sm:text-sm font-bold text-slate-800 uppercase tracking-wider font-display truncate max-w-[150px] sm:max-w-none">
-              {schoolName || "Xaaji Salaad School"} &bull; <span className="text-[#042954]">{activeTab.toUpperCase()}</span>
-            </h1>
+            <div className="flex items-center gap-2">
+              <Store className="w-4 h-4 text-[#042954] hidden sm:inline" />
+              <span className="text-xs sm:text-sm font-bold text-slate-900 font-display">
+                {supermarketName}
+              </span>
+              <span className="text-slate-300 hidden sm:inline">&bull;</span>
+              <span className="text-xs font-bold text-[#042954] uppercase bg-slate-100 px-2.5 py-0.5 rounded-md hidden sm:inline">
+                {activeTab}
+              </span>
+            </div>
           </div>
 
-          {/* User Controls and Switch Menu */}
+          {/* User Controls and Actions */}
           <div className="flex items-center gap-2 sm:gap-3">
-            <div className="hidden sm:flex items-center gap-2 pr-3 border-r border-slate-200">
-              <span className="text-xs font-semibold text-slate-600 truncate max-w-[120px]">
-                {currentUser.fullName || currentUser.username}
-              </span>
-              {getRoleBadgeUI(currentUser.role)}
-            </div>
+            <button
+              onClick={() => setActiveTab('pos')}
+              className="px-3 py-1.5 bg-[#ffae01] hover:bg-[#e09900] text-slate-950 text-xs font-bold rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer transition-transform active:scale-95"
+            >
+              <ShoppingCart className="w-4 h-4 text-slate-950" />
+              <span className="hidden sm:inline">Fur POS</span>
+            </button>
 
-            {/* Live Chat Help Button in Header */}
             <button
               onClick={() => setActiveTab('chat')}
-              className="px-2.5 sm:px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer min-h-[38px]"
-              title="Live Chat Help - Toos ula hadal Maamulka"
+              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-xs cursor-pointer"
             >
-              <MessageCircle className="w-3.5 h-3.5 text-white" />
-              <span className="hidden sm:inline">Live Chat Help</span>
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-200 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-300"></span>
-              </span>
+              <MessageCircle className="w-4 h-4" />
+              <span className="hidden sm:inline">Live Chat</span>
             </button>
 
             {currentUser.role === 'admin' && (
               <button
                 onClick={() => setShowSwitchModal(true)}
-                className="px-2.5 sm:px-3 py-1.5 bg-[#042954] hover:bg-[#031d3d] text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer min-h-[38px]"
-                title="Bedel User-ka"
+                className="px-3 py-1.5 bg-[#042954] hover:bg-[#031d3d] text-white text-xs font-bold rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer"
               >
-                <UserCheck className="w-3.5 h-3.5 text-[#ffae01]" />
-                <span className="hidden sm:inline">Switch User</span>
+                <UserCheck className="w-4 h-4 text-[#ffae01]" />
+                <span className="hidden sm:inline">Bedel User</span>
               </button>
             )}
 
             <button
               onClick={handleLogout}
-              className="px-2.5 sm:px-3 py-1.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-700 text-slate-700 text-xs font-bold rounded-lg flex items-center gap-1.5 border border-slate-200 transition-colors cursor-pointer min-h-[38px]"
-              title="Ka bax nidaamka"
+              className="px-2.5 sm:px-3 py-1.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-700 text-slate-700 text-xs font-bold rounded-xl border border-slate-200 cursor-pointer"
+              title="Ka bax"
             >
-              <LogOut className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Logout</span>
+              <LogOut className="w-4 h-4" />
             </button>
           </div>
         </header>
 
-        {/* Content View */}
-        <main className="p-3.5 sm:p-6 lg:p-8 flex-1 overflow-y-auto">
-          <div className="max-w-6xl mx-auto">
+        {/* Content Body */}
+        <main className="p-3 sm:p-5 lg:p-6 flex-1 overflow-y-auto">
+          <div className="max-w-7xl mx-auto">
             {renderActivePage()}
           </div>
         </main>
@@ -978,22 +850,22 @@ export default function App() {
       {/* Switch User Modal (Admin only) */}
       {showSwitchModal && currentUser.role === 'admin' && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-3xl max-w-md w-full p-5 shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
               <div className="flex items-center gap-2">
-                <div className="p-2 bg-[#042954]/5 text-[#042954] rounded-lg">
+                <div className="p-2 bg-[#042954]/5 text-[#042954] rounded-xl">
                   <UserCheck className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-slate-900 font-display">
+                  <h3 className="text-sm font-bold text-slate-900 font-display">
                     Bedel User-ka (Switch User)
                   </h3>
-                  <p className="text-xs text-slate-500">Dooro akoonka aad rabto inaad u wareegto</p>
+                  <p className="text-[11px] text-slate-500">Dooro akoonka aad rabto inaad tijaabiso</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowSwitchModal(false)}
-                className="text-slate-400 hover:text-slate-600 cursor-pointer p-1"
+                className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1002,70 +874,43 @@ export default function App() {
             <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
               {users.map((u) => {
                 const isSelected = currentUser?.id === u.id;
-                const isPassVisible = revealedPasswords[u.id];
-
                 return (
                   <div
                     key={u.id}
-                    className={`w-full p-3 rounded-xl border flex items-center justify-between transition-all ${
+                    onClick={() => handleQuickSwitch(u)}
+                    className={`w-full p-3 rounded-2xl border flex items-center justify-between transition-all cursor-pointer ${
                       isSelected
                         ? 'bg-blue-50/80 border-blue-300 ring-2 ring-blue-500/20'
                         : 'bg-slate-50 hover:bg-slate-100 border-slate-200'
                     }`}
                   >
-                    <div 
-                      onClick={() => handleQuickSwitch(u)}
-                      className="flex items-center gap-3 flex-1 cursor-pointer overflow-hidden pr-2"
-                    >
-                      <div className="w-9 h-9 rounded-full bg-[#042954] text-white flex items-center justify-center font-bold text-xs shrink-0">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-[#042954] text-[#ffae01] flex items-center justify-center font-bold text-xs shrink-0">
                         {u.username.substring(0, 2).toUpperCase()}
                       </div>
-                      <div className="overflow-hidden">
+                      <div>
                         <div className="text-xs font-bold text-slate-900 flex items-center gap-2">
-                          <span className="truncate">{u.fullName || u.username}</span>
+                          <span>{u.fullName || u.username}</span>
                           {isSelected && (
-                            <span className="text-[10px] bg-emerald-600 text-white font-bold px-1.5 py-0.2 rounded-full shrink-0">
+                            <span className="text-[9px] bg-emerald-600 text-white font-bold px-1.5 py-0.2 rounded-full">
                               Active
                             </span>
                           )}
                         </div>
-                        <div className="text-[11px] font-mono text-slate-500 flex items-center gap-1.5 mt-0.5">
-                          <span>User: <strong className="text-slate-700">{u.username}</strong></span>
+                        <div className="text-[10px] font-mono text-slate-500 mt-0.5">
+                          User: <strong className="text-slate-700">{u.username}</strong> ({u.role})
                         </div>
                       </div>
-                    </div>
-
-                    <div className="shrink-0 flex items-center gap-2">
-                      {getRoleBadgeUI(u.role)}
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleRevealPassword(u.id);
-                        }}
-                        className="text-slate-400 hover:text-slate-600 p-1"
-                        title="Muuji/Qari Password-ka"
-                      >
-                        {isPassVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                      </button>
                     </div>
                   </div>
                 );
               })}
             </div>
 
-            <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between">
-              <button
-                onClick={handleLogout}
-                className="px-3 py-1.5 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                <span>Ka bax (Log Out)</span>
-              </button>
-
+            <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-end">
               <button
                 onClick={() => setShowSwitchModal(false)}
-                className="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg cursor-pointer"
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl cursor-pointer"
               >
                 Xir
               </button>
@@ -1074,27 +919,22 @@ export default function App() {
         </div>
       )}
 
-      {/* Floating Live Chat Help Button (Visible when not in Chat tab) */}
+      {/* Floating Live Chat Bubble */}
       {activeTab !== 'chat' && (
         <div className="fixed bottom-5 right-5 z-40 no-print">
           <button
             onClick={() => setActiveTab('chat')}
             className="group flex items-center gap-2.5 bg-[#042954] hover:bg-[#031d3d] text-white px-4 py-3 rounded-full shadow-2xl border-2 border-[#ffae01] transition-all hover:scale-105 cursor-pointer"
-            title="Live Chat Help - Toos ula hadal Maamulka"
+            title="Live Chat Help"
           >
             <div className="relative">
               <MessageCircle className="w-5 h-5 text-[#ffae01]" />
               <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#042954] animate-ping" />
               <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#042954]" />
             </div>
-            <div className="flex flex-col text-left">
-              <span className="text-xs font-bold font-display leading-tight flex items-center gap-1 text-white">
-                Live Chat Help
-              </span>
-              <span className="text-[10px] text-[#ffae01] font-semibold leading-tight">
-                {currentUser.role === 'admin' ? 'Messenger' : 'La Hadal Maamulka'}
-              </span>
-            </div>
+            <span className="text-xs font-bold font-display text-white hidden sm:inline">
+              Live Chat
+            </span>
           </button>
         </div>
       )}

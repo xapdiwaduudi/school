@@ -8,7 +8,7 @@ export const DEFAULT_ACCOUNTS: SchoolAccount[] = [
     accountNumber: '411840',
     phoneNumber: '+252906305090',
     initialBalance: 0,
-    description: 'Xisaabta Guud ee Iskuulka (EVC & Salaam Bank)',
+    description: 'Xisaabta Guud ee Supermarket-ka (EVC & Salaam Bank)',
     isDefault: true,
     createdAt: new Date().toISOString()
   },
@@ -47,7 +47,7 @@ export const DEFAULT_ACCOUNTS: SchoolAccount[] = [
   },
   {
     id: 'acc_cashbox',
-    name: 'Qasnadda Iskuulka (Cash Box)',
+    name: 'Qasnadda Supermarket-ka (Cash Drawer)',
     bankName: 'Cash Drawer',
     accountNumber: 'CASH-01',
     phoneNumber: '+252906305090',

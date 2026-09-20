@@ -8,7 +8,7 @@ import {
   onSnapshot 
 } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
-import { SchoolData } from './types';
+import { SupermarketData } from './types';
 
 // Initialize Firebase App safely (singleton)
 export const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
@@ -31,20 +31,20 @@ function getInitializedFirestore() {
 
 export const db = getInitializedFirestore();
 
-const SCHOOL_DOC_ID = 'main_school_data';
+const SUPERMARKET_DOC_ID = 'main_supermarket_data';
 
 // Real-time synchronization subscription
-export function subscribeToSchoolData(
-  onData: (data: SchoolData) => void,
+export function subscribeToSupermarketData(
+  onData: (data: SupermarketData) => void,
   onError?: (err: Error) => void
 ) {
-  const docRef = doc(db, 'school_data', SCHOOL_DOC_ID);
+  const docRef = doc(db, 'supermarket_data', SUPERMARKET_DOC_ID);
   
   return onSnapshot(
     docRef,
     (snapshot) => {
       if (snapshot.exists()) {
-        const data = snapshot.data() as SchoolData;
+        const data = snapshot.data() as SupermarketData;
         onData(data);
       }
     },
@@ -55,9 +55,9 @@ export function subscribeToSchoolData(
   );
 }
 
-// Save complete school data to Firestore cloud
-export async function saveSchoolDataToCloud(data: SchoolData): Promise<void> {
-  const docRef = doc(db, 'school_data', SCHOOL_DOC_ID);
+// Save complete supermarket data to Firestore cloud
+export async function saveSupermarketDataToCloud(data: SupermarketData): Promise<void> {
+  const docRef = doc(db, 'supermarket_data', SUPERMARKET_DOC_ID);
   await setDoc(docRef, {
     ...data,
     updatedAt: new Date().toISOString()
@@ -65,16 +65,21 @@ export async function saveSchoolDataToCloud(data: SchoolData): Promise<void> {
 }
 
 // Fetch initial data once from cloud
-export async function fetchSchoolDataFromCloud(): Promise<SchoolData | null> {
+export async function fetchSupermarketDataFromCloud(): Promise<SupermarketData | null> {
   try {
-    const docRef = doc(db, 'school_data', SCHOOL_DOC_ID);
+    const docRef = doc(db, 'supermarket_data', SUPERMARKET_DOC_ID);
     const snap = await getDoc(docRef);
     if (snap.exists()) {
-      return snap.data() as SchoolData;
+      return snap.data() as SupermarketData;
     }
     return null;
   } catch (err) {
-    console.warn('Error fetching initial cloud school data:', err);
+    console.warn('Error fetching initial cloud supermarket data:', err);
     return null;
   }
 }
+
+// Backward compatibility wrappers
+export const subscribeToSchoolData = subscribeToSupermarketData;
+export const saveSchoolDataToCloud = saveSupermarketDataToCloud;
+export const fetchSchoolDataFromCloud = fetchSupermarketDataFromCloud;

@@ -31,7 +31,11 @@ import {
   X,
   Save,
   Copy,
-  Check
+  Check,
+  Scale,
+  Building,
+  FolderTree,
+  Landmark
 } from 'lucide-react';
 import {
   FinancialTransaction,
@@ -40,9 +44,21 @@ import {
   Student,
   Teacher,
   Expense,
-  SchoolAccount
+  SchoolAccount,
+  FixedAsset,
+  LiabilityItem,
+  EquityDetails,
+  Product,
+  Customer,
+  Supplier,
+  SaleTransaction
 } from '../types';
 import { DEFAULT_ACCOUNTS, getAccountBalance } from '../accountsData';
+import { DEFAULT_FIXED_ASSETS, DEFAULT_LIABILITIES, DEFAULT_EQUITY } from '../supermarketData';
+import FixedAssetsView from './accounting/FixedAssetsView';
+import LiabilitiesView from './accounting/LiabilitiesView';
+import BalanceSheetView from './accounting/BalanceSheetView';
+import ChartOfAccountsView from './accounting/ChartOfAccountsView';
 
 interface AccountingPageProps {
   transactions: FinancialTransaction[];
@@ -57,25 +73,38 @@ interface AccountingPageProps {
   accounts?: SchoolAccount[];
   setAccounts?: (accs: SchoolAccount[]) => void;
   saveAccounts?: (accs: SchoolAccount[]) => void;
+  // Full Accounting & Balance Sheet Props
+  fixedAssets?: FixedAsset[];
+  setFixedAssets?: (assets: FixedAsset[]) => void;
+  saveFixedAssets?: (assets: FixedAsset[]) => void;
+  liabilities?: LiabilityItem[];
+  setLiabilities?: (liabs: LiabilityItem[]) => void;
+  saveLiabilities?: (liabs: LiabilityItem[]) => void;
+  equityDetails?: EquityDetails;
+  setEquityDetails?: (eq: EquityDetails) => void;
+  saveEquityDetails?: (eq: EquityDetails) => void;
+  products?: Product[];
+  customers?: Customer[];
+  suppliers?: Supplier[];
+  sales?: SaleTransaction[];
 }
 
-const INCOME_CATEGORIES: TransactionCategory[] = [
-  'Student Fees',
-  'Uniform Sales',
-  'Books & Materials',
-  'Donation & Grants',
+const INCOME_CATEGORIES: string[] = [
+  'POS Daily Sales',
+  'Customer Debt Repayments',
+  'Wholesale Orders',
+  'Delivery Services',
   'Other Income'
 ];
 
-const EXPENSE_CATEGORIES: TransactionCategory[] = [
-  'Teacher Salary',
-  'Staff Salary',
-  'Utilities',
-  'Rent',
-  'Maintenance',
-  'Internet & IT',
-  'Transportation',
-  'Exam & Stationery',
+const EXPENSE_CATEGORIES: string[] = [
+  'Supplier Purchases',
+  'Staff & Cashier Salaries',
+  'Supermarket Rent',
+  'Electricity & Generator',
+  'Transportation & Logistics',
+  'Maintenance & Repairs',
+  'Packaging & Bags',
   'Other Expense'
 ];
 
@@ -91,7 +120,20 @@ export default function AccountingPage({
   accounts = DEFAULT_ACCOUNTS,
   setAccounts,
   saveAccounts,
-  currentUser
+  currentUser,
+  fixedAssets = DEFAULT_FIXED_ASSETS,
+  setFixedAssets,
+  saveFixedAssets,
+  liabilities = DEFAULT_LIABILITIES,
+  setLiabilities,
+  saveLiabilities,
+  equityDetails = DEFAULT_EQUITY,
+  setEquityDetails,
+  saveEquityDetails,
+  products = [],
+  customers = [],
+  suppliers = [],
+  sales = []
 }: AccountingPageProps) {
   const triggerSaveTransactions = (updated: FinancialTransaction[]) => {
     if (saveTransactions) {
@@ -109,8 +151,72 @@ export default function AccountingPage({
     }
   };
 
-  // Main Page Tabs: 'accounts' (Bangiyada & Qasnadda) vs 'ledger' (Dhaqdhaqaaqa Guud)
-  const [activeMainView, setActiveMainView] = useState<'accounts' | 'ledger'>('accounts');
+  // Fixed Assets Handlers
+  const handleAddAsset = (newAsset: FixedAsset) => {
+    const updated = [newAsset, ...fixedAssets];
+    if (setFixedAssets) setFixedAssets(updated);
+    if (saveFixedAssets) saveFixedAssets(updated);
+  };
+
+  const handleUpdateAsset = (asset: FixedAsset) => {
+    const updated = fixedAssets.map(a => a.id === asset.id ? asset : a);
+    if (setFixedAssets) setFixedAssets(updated);
+    if (saveFixedAssets) saveFixedAssets(updated);
+  };
+
+  const handleDeleteAsset = (id: string) => {
+    const updated = fixedAssets.filter(a => a.id !== id);
+    if (setFixedAssets) setFixedAssets(updated);
+    if (saveFixedAssets) saveFixedAssets(updated);
+  };
+
+  // Liabilities Handlers
+  const handleAddLiability = (newItem: LiabilityItem) => {
+    const updated = [newItem, ...liabilities];
+    if (setLiabilities) setLiabilities(updated);
+    if (saveLiabilities) saveLiabilities(updated);
+  };
+
+  const handleUpdateLiability = (item: LiabilityItem) => {
+    const updated = liabilities.map(l => l.id === item.id ? item : l);
+    if (setLiabilities) setLiabilities(updated);
+    if (saveLiabilities) saveLiabilities(updated);
+  };
+
+  const handleDeleteLiability = (id: string) => {
+    const updated = liabilities.filter(l => l.id !== id);
+    if (setLiabilities) setLiabilities(updated);
+    if (saveLiabilities) saveLiabilities(updated);
+  };
+
+  const handleMakeLiabilityPayment = (liabilityId: string, amount: number, note: string) => {
+    const defaultAcc = accounts[0];
+    const newTx: FinancialTransaction = {
+      id: `TX-LIAB-${Date.now()}`,
+      date: new Date().toISOString().split('T')[0],
+      type: 'expense',
+      account: defaultAcc ? defaultAcc.name : 'Cash Box',
+      accountId: defaultAcc?.id || '',
+      category: 'Supplier Purchases' as any,
+      amount: amount,
+      reference: `DEBT-PAY-${Date.now().toString().slice(-4)}`,
+      payerPayee: 'Bixinta Deynta',
+      note: note || `Bixinta qayb deyn ah`,
+      status: 'completed',
+      createdBy: currentUser?.fullName || 'Maamulka'
+    };
+    const updatedTxs = [newTx, ...transactions];
+    setTransactions(updatedTxs);
+    triggerSaveTransactions(updatedTxs);
+  };
+
+  const handleUpdateEquity = (eq: EquityDetails) => {
+    if (setEquityDetails) setEquityDetails(eq);
+    if (saveEquityDetails) saveEquityDetails(eq);
+  };
+
+  // Main Page Tabs: 'balance_sheet' | 'fixed_assets' | 'liabilities' | 'accounts' | 'ledger' | 'chart_of_accounts'
+  const [activeMainView, setActiveMainView] = useState<'balance_sheet' | 'fixed_assets' | 'liabilities' | 'accounts' | 'ledger' | 'chart_of_accounts'>('balance_sheet');
 
   // Filters & State
   const [activeTxTab, setActiveTxTab] = useState<'all' | 'income' | 'expense' | 'transfer'>('all');
@@ -410,83 +516,139 @@ export default function AccountingPage({
 
   return (
     <div className="space-y-6">
-      {/* Top Header & Metrics */}
-      <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+      {/* Top Header & Tab Navigation */}
+      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-700 border border-emerald-200">
-              <DollarSign className="w-6 h-6" />
+            <div className="w-11 h-11 bg-linear-to-br from-[#042954] to-[#0a4185] rounded-xl flex items-center justify-center text-[#ffae01] shadow-xs">
+              <Scale className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-xl font-bold font-display text-slate-900">Maamulka Xisaabaadka & Bangiyada</h2>
-              <p className="text-xs text-slate-500 font-medium">Qasnadda iskuulka, xisaabaadka EVC & Zaad, iyo dhaqdhaqaaqa dakhliga/kharashka</p>
+              <h2 className="text-xl font-black font-display text-slate-900">
+                Xisaabaadka & Warbixinnada Dhaqaalaha (Accounting)
+              </h2>
+              <p className="text-xs text-slate-500 font-medium">
+                Balance Sheet, Hantida Ma-Guurtada ah (Fixed Assets), Deymaha (Total Liabilities), Bangiyada & Diiwaanka
+              </p>
             </div>
-          </div>
-
-          {/* Tab Selection */}
-          <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
-            <button
-              onClick={() => setActiveMainView('accounts')}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
-                activeMainView === 'accounts'
-                  ? 'bg-white text-[#042954] shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Building2 className="w-4 h-4 text-blue-600" />
-              <span>Accounts & Bangiyada ({accounts.length})</span>
-            </button>
-
-            <button
-              onClick={() => setActiveMainView('ledger')}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
-                activeMainView === 'ledger'
-                  ? 'bg-white text-[#042954] shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <FileText className="w-4 h-4 text-emerald-600" />
-              <span>Diiwaanka Dhaqdhaqaaqa ({transactions.length})</span>
-            </button>
           </div>
         </div>
 
-        {/* Global Key Metrics (Starts at $0, Updates in Real Time) */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-5">
-          <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50/50 rounded-xl border border-blue-200/80">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-blue-800 uppercase tracking-wider">Haraaga Guud ee Qasnadda</span>
-              <Wallet className="w-5 h-5 text-blue-600" />
-            </div>
-            <div className="text-2xl font-black text-[#042954] mt-2 font-display">
-              ${totalCombinedBalance.toLocaleString()}
-            </div>
-            <p className="text-[11px] text-blue-700 mt-1 font-medium">Dhammaan xisaabaadka isku dar</p>
-          </div>
+        {/* 6 Core Accounting Tabs */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 border-t border-slate-100 pt-3">
+          <button
+            onClick={() => setActiveMainView('balance_sheet')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap shrink-0 ${
+              activeMainView === 'balance_sheet'
+                ? 'bg-[#042954] text-white shadow-xs'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            <Scale className="w-4 h-4 text-[#ffae01]" />
+            <span>Balance Sheet (Xisaab-Xirka)</span>
+          </button>
 
-          <div className="p-4 bg-gradient-to-br from-emerald-50 to-teal-50/50 rounded-xl border border-emerald-200/80">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider">Wadarta Dakhliga (IN)</span>
-              <ArrowDownLeft className="w-5 h-5 text-emerald-600" />
-            </div>
-            <div className="text-2xl font-black text-emerald-700 mt-2 font-display">
-              +${totalGlobalIncome.toLocaleString()}
-            </div>
-            <p className="text-[11px] text-emerald-700 mt-1 font-medium">Fiiga iyo dakhliyada soo galay</p>
-          </div>
+          <button
+            onClick={() => setActiveMainView('fixed_assets')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap shrink-0 ${
+              activeMainView === 'fixed_assets'
+                ? 'bg-[#042954] text-white shadow-xs'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            <Building className="w-4 h-4 text-blue-500" />
+            <span>Fixed Assets (Hantida Ma-Guurtada ah) ({fixedAssets.length})</span>
+          </button>
 
-          <div className="p-4 bg-gradient-to-br from-rose-50 to-orange-50/50 rounded-xl border border-rose-200/80">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-rose-800 uppercase tracking-wider">Wadarta Kharashka (OUT)</span>
-              <ArrowUpRight className="w-5 h-5 text-rose-600" />
-            </div>
-            <div className="text-2xl font-black text-rose-700 mt-2 font-display">
-              -${totalGlobalExpense.toLocaleString()}
-            </div>
-            <p className="text-[11px] text-rose-700 mt-1 font-medium">Mushaharaadka iyo kharashaadka baxay</p>
-          </div>
+          <button
+            onClick={() => setActiveMainView('liabilities')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap shrink-0 ${
+              activeMainView === 'liabilities'
+                ? 'bg-[#042954] text-white shadow-xs'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            <CreditCard className="w-4 h-4 text-rose-500" />
+            <span>Total Liabilities (Deymaha Ganacsiga) ({liabilities.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveMainView('accounts')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap shrink-0 ${
+              activeMainView === 'accounts'
+                ? 'bg-[#042954] text-white shadow-xs'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            <Wallet className="w-4 h-4 text-emerald-500" />
+            <span>Bangiyada & Qasnadda ({accounts.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveMainView('ledger')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap shrink-0 ${
+              activeMainView === 'ledger'
+                ? 'bg-[#042954] text-white shadow-xs'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            <FileText className="w-4 h-4 text-purple-500" />
+            <span>Diiwaanka Dhaqdhaqaaqa ({transactions.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveMainView('chart_of_accounts')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap shrink-0 ${
+              activeMainView === 'chart_of_accounts'
+                ? 'bg-[#042954] text-white shadow-xs'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            <FolderTree className="w-4 h-4 text-indigo-500" />
+            <span>Chart of Accounts (COA)</span>
+          </button>
         </div>
       </div>
+
+      {/* VIEW: BALANCE SHEET (XISAAB-XIRKA) */}
+      {activeMainView === 'balance_sheet' && (
+        <BalanceSheetView
+          accounts={accounts}
+          transactions={transactions}
+          fixedAssets={fixedAssets}
+          liabilities={liabilities}
+          equityDetails={equityDetails}
+          onUpdateEquity={handleUpdateEquity}
+          products={products}
+          customers={customers}
+          suppliers={suppliers}
+          expenses={expenses}
+          sales={sales}
+          supermarketName={schoolName}
+        />
+      )}
+
+      {/* VIEW: FIXED ASSETS (HANTIDA MA-GUURTADA AH) */}
+      {activeMainView === 'fixed_assets' && (
+        <FixedAssetsView
+          fixedAssets={fixedAssets}
+          onAddAsset={handleAddAsset}
+          onUpdateAsset={handleUpdateAsset}
+          onDeleteAsset={handleDeleteAsset}
+        />
+      )}
+
+      {/* VIEW: LIABILITIES (DEYMAHA GANACSIGA) */}
+      {activeMainView === 'liabilities' && (
+        <LiabilitiesView
+          liabilities={liabilities}
+          suppliers={suppliers}
+          onAddLiability={handleAddLiability}
+          onUpdateLiability={handleUpdateLiability}
+          onDeleteLiability={handleDeleteLiability}
+          onMakePayment={handleMakeLiabilityPayment}
+        />
+      )}
 
       {/* VIEW 1: ACCOUNTS & BANKS OVERVIEW */}
       {activeMainView === 'accounts' && (
@@ -811,6 +973,11 @@ export default function AccountingPage({
             )}
           </div>
         </div>
+      )}
+
+      {/* VIEW: CHART OF ACCOUNTS (SHAXDA XISAABAADKA) */}
+      {activeMainView === 'chart_of_accounts' && (
+        <ChartOfAccountsView />
       )}
 
       {/* MODAL: ADD / EDIT ACCOUNT */}

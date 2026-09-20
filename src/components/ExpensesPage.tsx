@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Expense, SchoolAccount, FinancialTransaction } from '../types';
-import { Wallet, Plus, Trash2, Edit3, X, Save, Building2, ArrowUpRight } from 'lucide-react';
+import { Wallet, Plus, Trash2, Edit3, X, Save, Building2, ArrowUpRight, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { DEFAULT_ACCOUNTS } from '../accountsData';
 
 interface ExpensesPageProps {
@@ -40,11 +40,24 @@ export default function ExpensesPage({
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editFormData, setEditFormData] = useState<Expense | null>(null);
 
-  const handleRecord = () => {
+  // Safety Confirmation Modal ("Ma hubtaa in aad bixisay lacagtan?")
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+
+  const handleInitiateRecord = () => {
     if (!name.trim() || !amount.trim() || !date.trim()) {
       alert("Fadlan buuxi dhammaan macluumaadka kharashka!");
       return;
     }
+    const numAmt = Number(amount);
+    if (isNaN(numAmt) || numAmt <= 0) {
+      alert("Fadlan geli qaddar sax ah oo lacag ah!");
+      return;
+    }
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmExpense = () => {
+    setShowConfirmModal(false);
 
     const chosenAccount = accounts.find(a => a.id === selectedAccountId) || accounts[0];
     const accountName = chosenAccount ? chosenAccount.name : 'Cash Box';
@@ -86,8 +99,6 @@ export default function ExpensesPage({
     setName('');
     setAmount('');
     setNote('');
-
-    alert(`Kharashka $${amount} waa la xereeyey waxaana laga saaray account-ka: ${accountName}!`);
   };
 
   const handleOpenEdit = (index: number) => {
@@ -196,7 +207,7 @@ export default function ExpensesPage({
 
           <div className="flex items-end">
             <button 
-              onClick={handleRecord}
+              onClick={handleInitiateRecord}
               className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold py-2.5 px-4 rounded-xl shadow-xs transition-colors flex items-center justify-center gap-2 text-xs cursor-pointer min-h-[42px]"
             >
               <Plus className="w-4 h-4" />
@@ -211,7 +222,7 @@ export default function ExpensesPage({
         <div className="border-b border-slate-100 pb-4 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h3 className="text-base font-bold font-display text-slate-900">
-              Diiwaanka Kharashaadka Iskuulka
+              Diiwaanka Kharashaadka Supermarket-ka
             </h3>
             <p className="text-xs text-slate-500">Dhammaan kharashaadka baxay iyo account-yada laga saaray</p>
           </div>
@@ -381,6 +392,71 @@ export default function ExpensesPage({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Safety Confirmation Modal: Ma hubtaa in aad bixisay lacagtan? */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="p-5 bg-rose-600 text-white flex items-center gap-3">
+              <div className="p-2.5 bg-white/20 rounded-2xl">
+                <AlertTriangle className="w-7 h-7 text-white" />
+              </div>
+              <div>
+                <h3 className="text-base font-black font-display">
+                  Xaqiijinta Bixinta Kharashka
+                </h3>
+                <p className="text-xs text-rose-100 mt-0.5">
+                  Fadlan xaqiiji in lacagtan dhab ahaan loo bixiyay.
+                </p>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="text-center py-2">
+                <p className="text-sm font-bold text-slate-700">
+                  Ma hubtaa in aad bixisay lacagtan kharashka ah?
+                </p>
+                <div className="text-3xl font-black text-rose-600 my-2">
+                  ${Number(amount).toFixed(2)}
+                </div>
+                <p className="text-xs font-bold text-slate-700">
+                  Nooca Kharashka: <span className="text-[#042954]">{name}</span>
+                </p>
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Account-ka laga bixinayo:{' '}
+                  <span className="font-semibold text-slate-700">
+                    {accounts.find(a => a.id === selectedAccountId)?.name || accounts[0]?.name || 'Cash Box'}
+                  </span>
+                </p>
+                {note.trim() && (
+                  <p className="text-[11px] text-slate-400 mt-1 italic">
+                    "{note.trim()}"
+                  </p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmModal(false)}
+                  className="py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl cursor-pointer transition-colors"
+                >
+                  MAYA (Ka laabo)
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleConfirmExpense}
+                  className="py-3 px-4 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>HAA, WAA LA BIXIYAY</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

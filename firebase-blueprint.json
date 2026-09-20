@@ -1,21 +1,26 @@
 {
   "entities": {
-    "SchoolData": {
+    "SupermarketData": {
       "collection": "school_data",
       "fields": {
-        "students": { "type": "array" },
-        "teachers": { "type": "array" },
+        "products": { "type": "array" },
+        "categories": { "type": "array" },
+        "sales": { "type": "array" },
+        "customers": { "type": "array" },
+        "debtPayments": { "type": "array" },
+        "suppliers": { "type": "array" },
+        "purchaseOrders": { "type": "array" },
+        "employees": { "type": "array" },
         "attendance": { "type": "array" },
-        "exams": { "type": "array" },
-        "schedules": { "type": "array" },
         "expenses": { "type": "array" },
         "transactions": { "type": "array" },
         "accounts": { "type": "array" },
-        "paymentSubmissions": { "type": "array" },
+        "fixedAssets": { "type": "array" },
+        "liabilities": { "type": "array" },
+        "equityDetails": { "type": "object" },
+        "currencySettings": { "type": "object" },
         "messages": { "type": "array" },
-        "subjects": { "type": "array" },
-        "threshold": { "type": "number" },
-        "schoolName": { "type": "string" },
+        "supermarketName": { "type": "string" },
         "users": { "type": "array" },
         "updatedAt": { "type": "string" }
       }
